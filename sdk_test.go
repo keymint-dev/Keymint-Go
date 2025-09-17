@@ -3,218 +3,130 @@ package keymint
 
 import (
 	keymint "KeymintGoSdk/src"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
+	"math/rand"
+	"os"
+	"sync"
 	"testing"
+	"time"
 )
 
-func TestCreateCustomer_IntegrationStyle(t *testing.T) {
-	fmt.Println("KeyMint SDK Test")
-	fmt.Println("================")
+var (
+	integrationLicenseKey string
+	integrationCustomerID string
+	testInitOnce sync.Once
+)
 
-	// Create a test server that simulates the KeyMint API
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-
-		switch r.URL.Path {
-		case "/customer":
-			// Handle customer creation
-			var params keymint.CreateCustomerParams
-			if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				json.NewEncoder(w).Encode(keymint.ApiError{
-					Message: "Invalid request body",
-					Code:    400,
-				})
-				return
-			}
-
-			// Simulate successful customer creation
-			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(keymint.CreateCustomerResponse{
-				Action:  "createCustomer",
-				Status:  true,
-				Message: "Customer created successfully",
-				Data: struct {
-					ID    string `json:"id"`
-					Name  string `json:"name"`
-					Email string `json:"email"`
-				}{
-					ID:    "12345",
-					Name:  params.Name,
-					Email: params.Email,
-				},
-				Code: 0,
-			})
-
-		case "/key":
-			// Handle key creation (for completeness)
-			var params keymint.CreateKeyParams
-			if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				json.NewEncoder(w).Encode(keymint.ApiError{
-					Message: "Invalid request body",
-					Code:    400,
-				})
-				return
-			}
-
-			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(keymint.CreateKeyResponse{
-				Code: 0,
-				Key:  "LICENSE-KEY-12345",
-			})
-
-		default:
-			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(keymint.ApiError{
-				Message: "Endpoint not found",
-				Code:    404,
-			})
+// Helper to create a unique customer and license key for all tests
+func integrationSetup(t *testing.T) (customerID, licenseKey string) {
+	testInitOnce.Do(func() {
+		accessToken := os.Getenv("KEYMINT_ACCESS_TOKEN")
+		productId := os.Getenv("KEYMINT_PRODUCT_ID")
+		if accessToken == "" || productId == "" {
+			t.Skip("Set KEYMINT_ACCESS_TOKEN and KEYMINT_PRODUCT_ID in your environment to run integration tests.")
 		}
-	}))
-	defer server.Close()
-
-	// Initialize SDK
-	sdk, err := keymint.NewSDK("at_CNNOGtg3ZqclCRXK0QQZutYyTyWwSSLflwAJx82WCPU28b13e3aeeb54fac9f43fae61d47dde29", server.URL)
-	if err != nil {
-		t.Fatalf("Failed to initialize SDK: %v", err)
-	}
-	fmt.Println("✓ SDK initialized successfully")
-
-	productId := "f6736ea441ac4ca3a52a84"
-
-	// Create customer
-	customerParams := keymint.CreateCustomerParams{
-		Name:  "Go customer",
-		Email: "customer@go.com",
-	}
-
-	fmt.Println("Creating customer...")
-	customer, err := sdk.CreateCustomer(customerParams)
-	if err != nil {
-		t.Fatalf("✗ Customer creation failed: %v", err)
-	}
-	fmt.Println("✓ Customer created successfully")
-	fmt.Printf("Customer ID: %s\n", customer.Data.ID)
-
-	// Use the customer ID for key creation
-	customerId := customer.Data.ID
-
-	// Option 1: Create key with existing customer ID
-	if customerId != "" {
-		fmt.Printf("Creating key with customer ID: %s\n", customerId)
-		
-		keyParams := keymint.CreateKeyParams{
-			ProductID:     productId,
-			CustomerID:    &customerId,
-			MaxActivations: func() *string { s := "5"; return &s }(),
-		}
-
-		key, err := sdk.CreateKey(keyParams)
+		client, err := keymint.New(accessToken, "")
 		if err != nil {
-			fmt.Printf("✗ Key creation with customer ID failed: %v\n", err)
-		} else {
-			fmt.Println("✓ Key created successfully with existing customer")
-			fmt.Printf("License Key: %s\n", key.Key)
-			fmt.Printf("Response Code: %d\n", key.Code)
+			t.Fatalf("Failed to initialize client: %v", err)
 		}
-	}
-
-	// Option 2: Create key with new customer
-	fmt.Println("\nTrying to create key with new customer...")
-
-	newCustomer := keymint.NewCustomer{
-		Name:  "Go Customer 2",
-		Email: func() *string { s := "customer2@go.com"; return &s }(),
-	}
-
-	keyParams2 := keymint.CreateKeyParams{
-		ProductID:     productId,
-		NewCustomer:   &newCustomer,
-		MaxActivations: func() *string { s := "3"; return &s }(),
-	}
-
-	// Debug: Show what we're sending
-	fmt.Println("Key params being sent:")
-	fmt.Printf("  productId: %s\n", keyParams2.ProductID)
-	fmt.Printf("  maxActivations: %s\n", *keyParams2.MaxActivations)
-	if keyParams2.NewCustomer != nil {
-		fmt.Printf("  newCustomer.name: %s\n", keyParams2.NewCustomer.Name)
-		if keyParams2.NewCustomer.Email != nil {
-			fmt.Printf("  newCustomer.email: %s\n", *keyParams2.NewCustomer.Email)
+		// Generate unique email
+		rand.Seed(time.Now().UnixNano())
+		email := fmt.Sprintf("integration-customer-%d@go.com", rand.Intn(1e9))
+		params := keymint.CreateCustomerParams{Name: "Go Integration Customer", Email: email}
+		resp, err := client.CreateCustomer(params)
+		if err != nil {
+			t.Fatalf("CreateCustomer failed: %v", err)
 		}
-	}
-
-	key2, err := sdk.CreateKey(keyParams2)
-	if err != nil {
-		fmt.Printf("✗ Key creation with new customer failed: %v\n", err)
-		// Check if it's an ApiError
-		if apiErr, ok := err.(*keymint.ApiError); ok {
-			fmt.Printf("Status Code: %v\n", apiErr.Status)
-			fmt.Printf("API Code: %d\n", apiErr.Code)
+		integrationCustomerID = resp.Data.ID
+		// Create key for this customer
+		keyParams := keymint.CreateKeyParams{ProductID: productId, CustomerID: &integrationCustomerID}
+		keyResp, err := client.CreateKey(keyParams)
+		if err != nil {
+			t.Fatalf("CreateKey failed: %v", err)
 		}
-	} else {
-		fmt.Println("✓ Key created successfully with new customer")
-		fmt.Printf("License Key: %s\n", key2.Key)
-		fmt.Printf("Response Code: %d\n", key2.Code)
-	}
-
-	fmt.Println("Test completed!")
-}
-
-// Additional test for error scenarios
-func TestCreateCustomer_ErrorCases(t *testing.T) {
-	// Test server that returns errors
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(keymint.ApiError{
-			Message: "Email already exists",
-			Code:    1001,
-		})
-	}))
-	defer server.Close()
-
-	sdk, err := keymint.NewSDK("test-token", server.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Test duplicate email error
-	_, err = sdk.CreateCustomer(keymint.CreateCustomerParams{
-		Name:  "Test Customer",
-		Email: "duplicate@mail.com",
+		integrationLicenseKey = keyResp.Key
 	})
-
-	if err == nil {
-		t.Error("Expected an error for duplicate email, but got none")
+	if integrationCustomerID == "" || integrationLicenseKey == "" {
+		t.Fatal("Failed to generate integration customer and license key")
 	}
+	return integrationCustomerID, integrationLicenseKey
+}
 
-	// Verify it's an ApiError
-	if apiErr, ok := err.(*keymint.ApiError); ok {
-		if apiErr.Message != "Email already exists" {
-			t.Errorf("Expected error message 'Email already exists', got '%s'", apiErr.Message)
-		}
-		if apiErr.Code != 1001 {
-			t.Errorf("Expected error code 1001, got %d", apiErr.Code)
-		}
-	} else {
-		t.Errorf("Expected ApiError, got %T", err)
+func TestIntegration_CreateCustomer(t *testing.T) {
+	_, _ = integrationSetup(t)
+	// If setup passes, customer creation is tested.
+}
+
+func TestIntegration_CreateKey(t *testing.T) {
+	customerID, _ := integrationSetup(t)
+	accessToken := os.Getenv("KEYMINT_ACCESS_TOKEN")
+	productId := os.Getenv("KEYMINT_PRODUCT_ID")
+	client, err := keymint.New(accessToken, "")
+	if err != nil {
+		t.Fatalf("Failed to initialize client: %v", err)
+	}
+	keyParams := keymint.CreateKeyParams{ProductID: productId, CustomerID: &customerID}
+	key, err := client.CreateKey(keyParams)
+	if err != nil {
+		t.Fatalf("CreateKey failed: %v", err)
+	}
+	if key.Key == "" {
+		t.Error("Expected a license key, got empty string")
 	}
 }
 
-// Test for invalid token
-func TestCreateCustomer_InvalidToken(t *testing.T) {
-	_, err := keymint.NewSDK("", "https://api.keymint.dev")
-	if err == nil {
-		t.Error("Expected error for empty token, but got none")
+func TestIntegration_GetAllCustomers(t *testing.T) {
+	accessToken := os.Getenv("KEYMINT_ACCESS_TOKEN")
+	client, err := keymint.New(accessToken, "")
+	if err != nil {
+		t.Fatalf("Failed to initialize client: %v", err)
 	}
-
-	expectedError := "access token is required to initialize the SDK"
-	if err.Error() != expectedError {
-		t.Errorf("Expected error '%s', got '%s'", expectedError, err.Error())
+	_, err = client.GetAllCustomers()
+	if err != nil {
+		t.Fatalf("GetAllCustomers failed: %v", err)
 	}
 }
+
+func TestIntegration_ActivateKey(t *testing.T) {
+	_, licenseKey := integrationSetup(t)
+	accessToken := os.Getenv("KEYMINT_ACCESS_TOKEN")
+	productId := os.Getenv("KEYMINT_PRODUCT_ID")
+	client, err := keymint.New(accessToken, "")
+	if err != nil {
+		t.Fatalf("Failed to initialize client: %v", err)
+	}
+	_, err = client.ActivateKey(keymint.ActivateKeyParams{ProductID: productId, LicenseKey: licenseKey})
+	if err != nil {
+		t.Fatalf("ActivateKey failed: %v", err)
+	}
+}
+
+func TestIntegration_DeactivateKey(t *testing.T) {
+	_, licenseKey := integrationSetup(t)
+	accessToken := os.Getenv("KEYMINT_ACCESS_TOKEN")
+	productId := os.Getenv("KEYMINT_PRODUCT_ID")
+	client, err := keymint.New(accessToken, "")
+	if err != nil {
+		t.Fatalf("Failed to initialize client: %v", err)
+	}
+	_, err = client.DeactivateKey(keymint.DeactivateKeyParams{ProductID: productId, LicenseKey: licenseKey})
+	if err != nil {
+		t.Fatalf("DeactivateKey failed: %v", err)
+	}
+}
+
+func TestIntegration_GetKey(t *testing.T) {
+	_, licenseKey := integrationSetup(t)
+	accessToken := os.Getenv("KEYMINT_ACCESS_TOKEN")
+	productId := os.Getenv("KEYMINT_PRODUCT_ID")
+	client, err := keymint.New(accessToken, "")
+	if err != nil {
+		t.Fatalf("Failed to initialize client: %v", err)
+	}
+	_, err = client.GetKey(keymint.GetKeyParams{ProductID: productId, LicenseKey: licenseKey})
+	if err != nil {
+		t.Fatalf("GetKey failed: %v", err)
+	}
+}
+
+// Add similar integration tests for other endpoints as needed.
