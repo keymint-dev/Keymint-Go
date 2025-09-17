@@ -12,7 +12,7 @@ A professional, production-ready SDK for integrating with the KeyMint API in Go.
 Add the SDK to your project:
 
 ```bash
-go get github.com/your-org/keymint-go-sdk
+go get github.com/keymint-dev/Keymint-Go
 ```
 
 ## Usage
@@ -20,7 +20,7 @@ go get github.com/your-org/keymint-go-sdk
 ```go
 import (
     "os"
-    "github.com/your-org/keymint-go-sdk/keymint"
+    "github.com/keymint-dev/Keymint-Go"
 )
 
 accessToken := os.Getenv("KEYMINT_ACCESS_TOKEN")
