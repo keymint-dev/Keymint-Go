@@ -1,4 +1,4 @@
-# KeyMint Go SDK
+# KeyMint Go
 
 A professional, production-ready SDK for integrating with the KeyMint API in Go. Provides robust access to all major KeyMint features, with idiomatic Go error handling.
 
