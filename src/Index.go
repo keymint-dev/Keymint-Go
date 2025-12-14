@@ -309,10 +309,22 @@ func (c *Client) CreateCustomer(params CreateCustomerParams) (*CreateCustomerRes
 }
 
 // GetAllCustomers retrieves all customers.
+// params: Optional parameters for pagination and filtering.
 // Returns a list of all customers or an error.
-func (c *Client) GetAllCustomers() (*GetAllCustomersResponse, error) {
+func (c *Client) GetAllCustomers(params GetAllCustomersParams) (*GetAllCustomersResponse, error) {
 	var result GetAllCustomersResponse
-	err := c.handleGetRequest("/customer", nil, &result)
+	queryParams := make(map[string]string)
+	if params.Page != nil {
+		queryParams["page"] = fmt.Sprintf("%d", *params.Page)
+	}
+	if params.Limit != nil {
+		queryParams["limit"] = fmt.Sprintf("%d", *params.Limit)
+	}
+	if params.Email != nil {
+		queryParams["email"] = *params.Email
+	}
+
+	err := c.handleGetRequest("/customer", queryParams, &result)
 	return &result, err
 }
 

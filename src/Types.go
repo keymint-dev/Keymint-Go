@@ -238,16 +238,40 @@ type Customer struct {
 	CreatedBy string `json:"createdBy"`
 }
 
+// GetAllCustomersParams represents parameters for the getAllCustomers API endpoint.
+type GetAllCustomersParams struct {
+	// Page is the optional page number.
+	Page *int `json:"page,omitempty"`
+	// Limit is the optional number of items per page.
+	Limit *int `json:"limit,omitempty"`
+	// Email is the optional filter by email.
+	Email *string `json:"email,omitempty"`
+}
+
+// PaginationMeta represents pagination metadata included in list responses.
+type PaginationMeta struct {
+	// Total is the total number of items.
+	Total int `json:"total"`
+	// Page is the current page number.
+	Page int `json:"page"`
+	// Limit is the number of items per page.
+	Limit int `json:"limit"`
+	// TotalPages is the total number of pages.
+	TotalPages int `json:"totalPages"`
+}
+
 // GetAllCustomersResponse represents response structure for a successful getAllCustomers API call.
 type GetAllCustomersResponse struct {
 	// Action is the action performed (e.g., "getCustomers").
-	Action string     `json:"action"`
+	Action string `json:"action"`
 	// Status indicates the success status.
-	Status bool       `json:"status"`
+	Status bool `json:"status"`
 	// Data is the array of customer objects.
-	Data   []Customer `json:"data"`
+	Data []Customer `json:"data"`
+	// Meta contains pagination metadata.
+	Meta *PaginationMeta `json:"meta,omitempty"`
 	// Code is the API response code (e.g., 0 for success).
-	Code   int        `json:"code"`
+	Code int `json:"code"`
 }
 
 // GetCustomerWithKeysParams represents parameters for the getCustomerWithKeys API endpoint.
