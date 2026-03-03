@@ -20,6 +20,10 @@ type CreateKeyParams struct {
 	ExpiryDate    *string      `json:"expiryDate,omitempty"`
 	// CustomerID is the optional ID of an existing customer to associate with the key.
 	CustomerID    *string      `json:"customerId,omitempty"`
+	// VersionID is the optional ID of a specific product version to associate with the key.
+	VersionID     *string      `json:"versionId,omitempty"`
+	// Metadata is an optional custom dictionary payload to attach to the license key.
+	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 	// NewCustomer is an optional object to create and associate a new customer with the key.
 	NewCustomer   *NewCustomer `json:"newCustomer,omitempty"`
 }
@@ -72,6 +76,12 @@ type ActivateKeyResponse struct {
 	LicenseeName  *string `json:"licenseeName,omitempty"`
 	// LicenseeEmail is the optional email of the licensee.
 	LicenseeEmail *string `json:"licenseeEmail,omitempty"`
+	// Metadata is the optional custom dictionary attached to the license key.
+	Metadata      map[string]interface{} `json:"metadata,omitempty"`
+	// VersionID is the optional associated product version ID.
+	VersionID     *string `json:"versionId,omitempty"`
+	// Version is the optional detailed product version information.
+	Version       map[string]interface{} `json:"version,omitempty"`
 }
 
 // DeactivateKeyParams represents parameters for the deactivateKey API endpoint.
@@ -122,6 +132,12 @@ type LicenseDetails struct {
 	Activated      bool            `json:"activated"`
 	// ExpirationDate is the updated field name.
 	ExpirationDate *string         `json:"expirationDate,omitempty"`
+	// Metadata is the optional custom dictionary attached to the license key.
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	// VersionID is the optional associated product version ID.
+	VersionID      *string         `json:"versionId,omitempty"`
+	// Version is the optional detailed product version information.
+	Version        map[string]interface{} `json:"version,omitempty"`
 }
 
 // CustomerDetails represents customer details included in the GetKeyResponse.
@@ -296,6 +312,10 @@ type CustomerLicenseKey struct {
 	Activated      bool    `json:"activated"`
 	// ExpirationDate is the expiration date of the license key.
 	ExpirationDate *string `json:"expirationDate,omitempty"`
+	// Metadata is the optional custom dictionary attached to the license key.
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	// VersionID is the optional associated product version ID.
+	VersionID      *string `json:"versionId,omitempty"`
 }
 
 // GetCustomerWithKeysResponse represents response structure for a successful getCustomerWithKeys API call.
