@@ -251,6 +251,10 @@ func (c *Client) CreateKey(params CreateKeyParams) (*CreateKeyResponse, error) {
 }
 
 // ActivateKey activates a license key for a specific device.
+// 
+// IMPORTANT: If hostId is omitted, Keymint generates a random, unique Device ID.
+// Every subsequent activation attempt without a hostId will be treated as a NEW machine.
+// Applications using anonymous activations MUST cache the validation results locally.
 // params: Parameters for activating the key.
 // Returns the activation status or an error.
 func (c *Client) ActivateKey(params ActivateKeyParams) (*ActivateKeyResponse, error) {
