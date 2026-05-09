@@ -26,6 +26,8 @@ type CreateKeyParams struct {
 	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 	// NewCustomer is an optional object to create and associate a new customer with the key.
 	NewCustomer   *NewCustomer `json:"newCustomer,omitempty"`
+	// AllowedHosts is an optional list of machine IDs authorized to use this license.
+	AllowedHosts  []string     `json:"allowedHosts,omitempty"`
 }
 
 // CreateKeyResponse represents response structure for a successful createKey API call.
@@ -82,6 +84,8 @@ type ActivateKeyResponse struct {
 	VersionID     *string `json:"versionId,omitempty"`
 	// Version is the optional detailed product version information.
 	Version       map[string]interface{} `json:"version,omitempty"`
+	// AllowedHosts is an optional list of authorized machine IDs.
+	AllowedHosts  []string               `json:"allowedHosts,omitempty"`
 }
 
 // DeactivateKeyParams represents parameters for the deactivateKey API endpoint.
@@ -138,6 +142,8 @@ type LicenseDetails struct {
 	VersionID      *string         `json:"versionId,omitempty"`
 	// Version is the optional detailed product version information.
 	Version        map[string]interface{} `json:"version,omitempty"`
+	// AllowedHosts is the optional list of authorized machine IDs.
+	AllowedHosts   []string               `json:"allowedHosts,omitempty"`
 }
 
 // CustomerDetails represents customer details included in the GetKeyResponse.
@@ -316,6 +322,8 @@ type CustomerLicenseKey struct {
 	Metadata       map[string]interface{} `json:"metadata,omitempty"`
 	// VersionID is the optional associated product version ID.
 	VersionID      *string `json:"versionId,omitempty"`
+	// AllowedHosts is the optional list of authorized machine IDs.
+	AllowedHosts   []string `json:"allowedHosts,omitempty"`
 }
 
 // GetCustomerWithKeysResponse represents response structure for a successful getCustomerWithKeys API call.
