@@ -1,10 +1,10 @@
-# KeyMint Go
+# Keymint Go
 
-A professional, production-ready SDK for integrating with the KeyMint API in Go. Provides robust access to all major KeyMint features, with idiomatic Go error handling.
+A professional, production-ready SDK for integrating with the Keymint API in Go. Provides robust access to all major Keymint features, with idiomatic Go error handling.
 
 ## Features
 - **Idiomatic Go**: Clean, type-safe API using a `Client` struct and `keymint.New()` constructor.
-- **Comprehensive**: Complete API coverage for all KeyMint endpoints.
+- **Comprehensive**: Complete API coverage for all Keymint endpoints.
 - **Consistent error handling**: All API errors are returned as `*ApiError`.
 - **Security**: Credentials are always loaded from environment variables.
 
@@ -12,28 +12,40 @@ A professional, production-ready SDK for integrating with the KeyMint API in Go.
 Add the SDK to your project:
 
 ```bash
-go get github.com/keymint-dev/Keymint-Go
+go get github.com/keymint-dev/keymint-go
 ```
 
 ## Usage
 
 ```go
+package main
+
 import (
     "os"
-    "github.com/keymint-dev/Keymint-Go"
+    "fmt"
+    "github.com/keymint-dev/keymint-go"
 )
 
-accessToken := os.Getenv("KEYMINT_ACCESS_TOKEN")
-productId := os.Getenv("KEYMINT_PRODUCT_ID")
+func main() {
+    accessToken := os.Getenv("KEYMINT_ACCESS_TOKEN")
+    productId := os.Getenv("KEYMINT_PRODUCT_ID")
 
-client, err := keymint.New(accessToken, "")
-if err != nil {
-    // handle error
-}
+    client, err := keymint.New(accessToken, "")
+    if err != nil {
+        panic(err)
+    }
 
-key, err := client.CreateKey(keymint.CreateKeyParams{ProductID: productId})
-if err != nil {
-    // handle error
+    // Create a key with authorized hosts
+    key, err := client.CreateKey(keymint.CreateKeyParams{
+        ProductID:    productId,
+        AllowedHosts: []string{"machine-a"},
+    })
+    if err != nil {
+        fmt.Printf("Error: %v\n", err)
+        return
+    }
+    
+    fmt.Printf("Created Key: %s\n", key.Key)
 }
 ```
 
@@ -41,8 +53,6 @@ if err != nil {
 All SDK methods return a result and an error. If the error is from the API, it will be of type `*ApiError` with `Message`, `Code`, and `Status` fields.
 
 ## API Methods
-
-All methods return a result struct and an error.
 
 ### License Key Management
 
@@ -67,10 +77,8 @@ All methods return a result struct and an error.
 | `ToggleCustomerStatus`  | Toggles customer active status.                  |
 | `DeleteCustomer`        | Permanently deletes a customer and their keys.   |
 
-For detailed parameter and response types, see the [KeyMint API docs](https://docs.keymint.dev) or use your IDE's autocomplete.
-
 ## License
 MIT
 
 ## Support
-For help, see [KeyMint API docs](https://docs.keymint.dev) or open an issue.
+For help, see [Keymint API docs](https://docs.keymint.dev) or open an issue.
