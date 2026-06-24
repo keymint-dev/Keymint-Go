@@ -422,3 +422,93 @@ type DeleteCustomerResponse struct {
 	// Code is the API response code.
 	Code    int    `json:"code"`
 }
+
+// FloatingCheckoutParams represents parameters for the floating license checkout API endpoint.
+type FloatingCheckoutParams struct {
+	// ProductID is the unique identifier of the product.
+	ProductID      string  `json:"productId"`
+	// LicenseKey is the license key.
+	LicenseKey     string  `json:"licenseKey"`
+	// HostID is the unique hardware identifier of the device.
+	HostID         string  `json:"hostId"`
+	// DeviceTag is an optional friendly name for the device.
+	DeviceTag      *string `json:"deviceTag,omitempty"`
+	// UserIdentifier is an optional user identifier.
+	UserIdentifier *string `json:"userIdentifier,omitempty"`
+}
+
+// FloatingCheckoutResponse represents response structure for a successful floating license checkout API call.
+type FloatingCheckoutResponse struct {
+	// Code is the API response code (e.g., 0 for success).
+	Code              int                    `json:"code"`
+	// Message is the activation status message.
+	Message           string                 `json:"message"`
+	// SessionID is the unique session ID.
+	SessionID         string                 `json:"sessionId"`
+	// SessionSecret is the temporary session secret key.
+	SessionSecret     string                 `json:"sessionSecret"`
+	// NextNonce is the rotating nonce string to use for the next request.
+	NextNonce         string                 `json:"nextNonce"`
+	// ExpiresAt is the expiration time of the session in ISO 8601 format.
+	ExpiresAt         string                 `json:"expiresAt"`
+	// HeartbeatInterval is the interval (in seconds) the client must heartbeat within.
+	HeartbeatInterval int                    `json:"heartbeatInterval"`
+	// Metadata is the optional custom dictionary attached to the license key.
+	Metadata          map[string]interface{} `json:"metadata,omitempty"`
+	// CurrentSessions is the number of active sessions for the license key.
+	CurrentSessions   *int                   `json:"currentSessions,omitempty"`
+	// MaxSessions is the maximum concurrent sessions allowed for the license key.
+	MaxSessions       *int                   `json:"maxSessions,omitempty"`
+	// LicenseeName is the optional name of the customer licensee.
+	LicenseeName      *string                `json:"licenseeName,omitempty"`
+	// LicenseeEmail is the optional email of the customer licensee.
+	LicenseeEmail     *string                `json:"licenseeEmail,omitempty"`
+}
+
+// FloatingHeartbeatParams represents parameters for the floating license heartbeat API endpoint.
+type FloatingHeartbeatParams struct {
+	// ProductID is the unique identifier of the product.
+	ProductID  string      `json:"productId"`
+	// LicenseKey is the license key.
+	LicenseKey string      `json:"licenseKey"`
+	// SessionID is the unique session ID.
+	SessionID  string      `json:"sessionId"`
+	// Timestamp is the rotating nonce (nextNonce) received from the previous response.
+	Timestamp  interface{} `json:"timestamp"`
+	// Signature is the HMAC-SHA256 signature generated using the sessionSecret over the payload 'sessionId:nonce'.
+	Signature  string      `json:"signature"`
+}
+
+// FloatingHeartbeatResponse represents response structure for a successful floating license heartbeat API call.
+type FloatingHeartbeatResponse struct {
+	// Code is the API response code (e.g., 0 for success).
+	Code      int    `json:"code"`
+	// Message is the response status message.
+	Message   string `json:"message"`
+	// ExpiresAt is the extended expiration time of the session in ISO 8601 format.
+	ExpiresAt string `json:"expiresAt"`
+	// NextNonce is the newly rotated nonce to be used for the next subsequent heartbeat.
+	NextNonce string `json:"nextNonce"`
+}
+
+// FloatingCheckinParams represents parameters for the floating license checkin API endpoint.
+type FloatingCheckinParams struct {
+	// ProductID is the unique identifier of the product.
+	ProductID  string      `json:"productId"`
+	// LicenseKey is the license key.
+	LicenseKey string      `json:"licenseKey"`
+	// SessionID is the unique session ID.
+	SessionID  string      `json:"sessionId"`
+	// Timestamp is the rotating nonce (nextNonce) received from the previous response.
+	Timestamp  interface{} `json:"timestamp"`
+	// Signature is the HMAC-SHA256 signature generated using the sessionSecret over the payload 'sessionId:nonce'.
+	Signature  string      `json:"signature"`
+}
+
+// FloatingCheckinResponse represents response structure for a successful floating license checkin API call.
+type FloatingCheckinResponse struct {
+	// Code is the API response code (e.g., 0 for success).
+	Code    int    `json:"code"`
+	// Message is the confirmation message.
+	Message string `json:"message"`
+}

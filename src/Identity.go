@@ -1,6 +1,7 @@
 package keymint
 
 import (
+	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -173,7 +174,7 @@ func GetOrCreateInstallationID(storagePath string) (string, error) {
 	if storagePath == "" {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			return "", fmt.Errorf("cannot determine home directory: %w", err)
+			home = os.TempDir() // Fallback if no home dir
 		}
 		storagePath = filepath.Join(home, ".keymint", "installation-id")
 	}
@@ -192,15 +193,24 @@ func GetOrCreateInstallationID(storagePath string) (string, error) {
 	newUUID := uuid.New().String()
 	compositeID := fmt.Sprintf("%s:%s:%d", newUUID, hardwareAnchor, time.Now().UnixMilli())
 
-	// 3. Persist it
+	// 3. Persist it (with fallback for read-only filesystems)
 	dir := filepath.Dir(storagePath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return "", fmt.Errorf("cannot create directory %s: %w", dir, err)
-	}
-	if err := os.WriteFile(storagePath, []byte(compositeID), 0600); err != nil {
-		return "", fmt.Errorf("cannot write installation ID: %w", err)
-	}
+	_ = os.MkdirAll(dir, 0755)
+	_ = os.WriteFile(storagePath, []byte(compositeID), 0600)
 
 	h := sha256.Sum256([]byte(compositeID))
 	return hex.EncodeToString(h[:]), nil
+}
+
+// GenerateSessionSignature generates a cryptographic signature for a heartbeat or checkin request
+// using the sessionSecret and the rotating nextNonce (passed as the timestamp).
+//
+// sessionID: The 22-character unique session ID.
+// nonce: The rotating nonce string (nextNonce) received from the previous response.
+// sessionSecret: The temporary session secret key received during checkout.
+// Returns a 64-character hexadecimal signature string.
+func GenerateSessionSignature(sessionID, nonce, sessionSecret string) string {
+	mac := hmac.New(sha256.New, []byte(sessionSecret))
+	mac.Write([]byte(sessionID + ":" + nonce))
+	return hex.EncodeToString(mac.Sum(nil))
 }

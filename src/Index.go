@@ -13,17 +13,17 @@ import (
 // Client provides methods to interact with the KeyMint API for license and customer management.
 type Client struct {
 	baseURL     string
-	accessToken string
+	apiKey string
 	httpClient  *http.Client
 }
 
 // New creates a new KeyMint API client instance.
-// accessToken: Your KeyMint API access token (required).
+// apiKey: Your Keymint API key (required).
 // baseURL: Optional API base URL (defaults to https://api.keymint.dev).
-// Returns a new Client instance or an error if accessToken is missing.
-func New(accessToken string, baseURL string) (*Client, error) {
-	if accessToken == "" {
-		return nil, fmt.Errorf("access token is required to initialize the client")
+// Returns a new Client instance or an error if apiKey is missing.
+func New(apiKey string, baseURL string) (*Client, error) {
+	if apiKey == "" {
+		return nil, fmt.Errorf("API key is required to initialize the client")
 	}
 
 	if baseURL == "" {
@@ -32,7 +32,7 @@ func New(accessToken string, baseURL string) (*Client, error) {
 
 	return &Client{
 		baseURL:     baseURL,
-		accessToken: accessToken,
+		apiKey: apiKey,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -62,7 +62,7 @@ func (c *Client) handleRequest(method, endpoint string, params interface{}, resu
 		}
 	}
 
-	req.Header.Set("Authorization", "Bearer "+c.accessToken)
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.httpClient.Do(req)
@@ -129,7 +129,7 @@ func (c *Client) handleGetRequest(endpoint string, queryParams map[string]string
 		req.URL.RawQuery = q.Encode()
 	}
 
-	req.Header.Set("Authorization", "Bearer "+c.accessToken)
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.httpClient.Do(req)
@@ -196,7 +196,7 @@ func (c *Client) handleDeleteRequest(endpoint string, queryParams map[string]str
 		req.URL.RawQuery = q.Encode()
 	}
 
-	req.Header.Set("Authorization", "Bearer "+c.accessToken)
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.httpClient.Do(req)
@@ -269,6 +269,33 @@ func (c *Client) ActivateKey(params ActivateKeyParams) (*ActivateKeyResponse, er
 func (c *Client) DeactivateKey(params DeactivateKeyParams) (*DeactivateKeyResponse, error) {
 	var result DeactivateKeyResponse
 	err := c.handleRequest("POST", "/key/deactivate", params, &result)
+	return &result, err
+}
+
+// FloatingCheckout checks out a floating license seat.
+// params: Parameters for checking out the license.
+// Returns the checkout response or an error.
+func (c *Client) FloatingCheckout(params FloatingCheckoutParams) (*FloatingCheckoutResponse, error) {
+	var result FloatingCheckoutResponse
+	err := c.handleRequest("POST", "/key/checkout", params, &result)
+	return &result, err
+}
+
+// FloatingHeartbeat sends a heartbeat to keep a floating license session alive.
+// params: Parameters for the heartbeat.
+// Returns the heartbeat response or an error.
+func (c *Client) FloatingHeartbeat(params FloatingHeartbeatParams) (*FloatingHeartbeatResponse, error) {
+	var result FloatingHeartbeatResponse
+	err := c.handleRequest("POST", "/key/heartbeat", params, &result)
+	return &result, err
+}
+
+// FloatingCheckin checks in a floating license session, releasing the seat.
+// params: Parameters for checking in the license.
+// Returns the checkin response or an error.
+func (c *Client) FloatingCheckin(params FloatingCheckinParams) (*FloatingCheckinResponse, error) {
+	var result FloatingCheckinResponse
+	err := c.handleRequest("POST", "/key/checkin", params, &result)
 	return &result, err
 }
 

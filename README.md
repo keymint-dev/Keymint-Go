@@ -6,7 +6,7 @@ A professional, production-ready SDK for integrating with the Keymint API in Go.
 - **Idiomatic Go**: Clean, type-safe API using a `Client` struct and `keymint.New()` constructor.
 - **Comprehensive**: Complete API coverage for all Keymint endpoints.
 - **Consistent error handling**: All API errors are returned as `*ApiError`.
-- **Security**: Credentials are always loaded from environment variables.
+- **Machine Identity**: Built-in utilities for hardware fingerprinting and stable installation IDs.
 
 ## Installation
 Add the SDK to your project:
@@ -35,10 +35,16 @@ func main() {
         panic(err)
     }
 
-    // Create a key with authorized hosts
+    // 1. Get a stable, unique ID for this machine
+    hostId, err := keymint.GetOrCreateInstallationID("")
+    if err != nil {
+        panic(err)
+    }
+
+    // 2. Create a key authorized only for this machine
     key, err := client.CreateKey(keymint.CreateKeyParams{
         ProductID:    productId,
-        AllowedHosts: []string{"machine-a"},
+        AllowedHosts: []string{hostId},
     })
     if err != nil {
         fmt.Printf("Error: %v\n", err)
@@ -49,8 +55,11 @@ func main() {
 }
 ```
 
-## Error Handling
-All SDK methods return a result and an error. If the error is from the API, it will be of type `*ApiError` with `Message`, `Code`, and `Status` fields.
+## Machine Identity
+Keymint provides utilities to uniquely identify machines for node-locking:
+
+- `keymint.GetOrCreateInstallationID(storagePath)`: **Recommended.** Generates a stable UUID anchored to hardware and persists it to `~/.keymint/installation-id`.
+- `keymint.GetMachineID()`: Generates a SHA-256 fingerprint based on BIOS UUID, OS machine ID, and MAC address.
 
 ## API Methods
 
