@@ -27,10 +27,10 @@ import (
 )
 
 func main() {
-    accessToken := os.Getenv("KEYMINT_ACCESS_TOKEN")
+    apiKey := os.Getenv("KEYMINT_API_KEY")
     productId := os.Getenv("KEYMINT_PRODUCT_ID")
 
-    client, err := keymint.New(accessToken, "")
+    client, err := keymint.New(apiKey, "")
     if err != nil {
         panic(err)
     }
