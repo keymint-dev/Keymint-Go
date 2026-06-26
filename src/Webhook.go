@@ -31,9 +31,10 @@ func VerifyWebhookSignature(payload string, header string, secret string, tolera
 	for _, part := range parts {
 		kv := strings.SplitN(strings.TrimSpace(part), "=", 2)
 		if len(kv) == 2 {
-			if kv[0] == "t" {
+			switch kv[0] {
+			case "t":
 				timestampStr = kv[1]
-			} else if kv[0] == "v1" {
+			case "v1":
 				signature = kv[1]
 			}
 		}
