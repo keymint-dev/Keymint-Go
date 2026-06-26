@@ -12,9 +12,9 @@ import (
 // Client is the main entry point for the KeyMint API client
 // Client provides methods to interact with the KeyMint API for license and customer management.
 type Client struct {
-	baseURL     string
-	apiKey string
-	httpClient  *http.Client
+	baseURL    string
+	apiKey     string
+	httpClient *http.Client
 }
 
 // New creates a new KeyMint API client instance.
@@ -31,8 +31,8 @@ func New(apiKey string, baseURL string) (*Client, error) {
 	}
 
 	return &Client{
-		baseURL:     baseURL,
-		apiKey: apiKey,
+		baseURL: baseURL,
+		apiKey:  apiKey,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -251,7 +251,7 @@ func (c *Client) CreateKey(params CreateKeyParams) (*CreateKeyResponse, error) {
 }
 
 // ActivateKey activates a license key for a specific device.
-// 
+//
 // IMPORTANT: If hostId is omitted, Keymint generates a random, unique Device ID.
 // Every subsequent activation attempt without a hostId will be treated as a NEW machine.
 // Applications using anonymous activations MUST cache the validation results locally.

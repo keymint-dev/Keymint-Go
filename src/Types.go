@@ -5,7 +5,7 @@ import "fmt"
 // NewCustomer represents the structure for creating a new customer when creating a license key.
 type NewCustomer struct {
 	// Name is the name of the new customer.
-	Name  string  `json:"name"`
+	Name string `json:"name"`
 	// Email is the optional email of the new customer.
 	Email *string `json:"email,omitempty"`
 }
@@ -13,29 +13,29 @@ type NewCustomer struct {
 // CreateKeyParams represents parameters for the createKey API endpoint.
 type CreateKeyParams struct {
 	// ProductID is the unique identifier of the product.
-	ProductID     string       `json:"productId"`
+	ProductID string `json:"productId"`
 	// MaxActivations is the optional maximum number of times the key can be activated.
-	MaxActivations *string      `json:"maxActivations,omitempty"`
+	MaxActivations *string `json:"maxActivations,omitempty"`
 	// ExpiryDate is the optional expiration date of the key in ISO 8601 format.
-	ExpiryDate    *string      `json:"expiryDate,omitempty"`
+	ExpiryDate *string `json:"expiryDate,omitempty"`
 	// CustomerID is the optional ID of an existing customer to associate with the key.
-	CustomerID    *string      `json:"customerId,omitempty"`
+	CustomerID *string `json:"customerId,omitempty"`
 	// VersionID is the optional ID of a specific product version to associate with the key.
-	VersionID     *string      `json:"versionId,omitempty"`
+	VersionID *string `json:"versionId,omitempty"`
 	// Metadata is an optional custom dictionary payload to attach to the license key.
-	Metadata      map[string]interface{} `json:"metadata,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 	// NewCustomer is an optional object to create and associate a new customer with the key.
-	NewCustomer   *NewCustomer `json:"newCustomer,omitempty"`
+	NewCustomer *NewCustomer `json:"newCustomer,omitempty"`
 	// AllowedHosts is an optional list of machine IDs authorized to use this license.
-	AllowedHosts  []string     `json:"allowedHosts,omitempty"`
+	AllowedHosts []string `json:"allowedHosts,omitempty"`
 }
 
 // CreateKeyResponse represents response structure for a successful createKey API call.
 type CreateKeyResponse struct {
 	// Code is the API response code (e.g., 0 for success).
-	Code int    `json:"code"`
+	Code int `json:"code"`
 	// Key is the generated license key.
-	Key  string `json:"key"`
+	Key string `json:"key"`
 }
 
 // ApiError represents standard error response structure from the KeyMint API.
@@ -43,9 +43,9 @@ type ApiError struct {
 	// Message is a descriptive error message.
 	Message string `json:"message"`
 	// Code is the API specific error code.
-	Code    int    `json:"code"`
+	Code int `json:"code"`
 	// Status is the optional HTTP status code.
-	Status  *int   `json:"status,omitempty"`
+	Status *int `json:"status,omitempty"`
 }
 
 // Error implements the error interface for ApiError.
@@ -59,43 +59,43 @@ func (e *ApiError) Error() string {
 // ActivateKeyParams represents parameters for the activateKey API endpoint.
 type ActivateKeyParams struct {
 	// ProductID is the unique identifier of the product.
-	ProductID   string  `json:"productId"`
+	ProductID string `json:"productId"`
 	// LicenseKey is the license key to activate.
-	LicenseKey  string  `json:"licenseKey"`
+	LicenseKey string `json:"licenseKey"`
 	// HostID is an optional unique identifier for the device.
-	HostID      *string `json:"hostId,omitempty"`
+	HostID *string `json:"hostId,omitempty"`
 	// DeviceTag is an optional user-friendly name for the device.
-	DeviceTag   *string `json:"deviceTag,omitempty"`
+	DeviceTag *string `json:"deviceTag,omitempty"`
 }
 
 // ActivateKeyResponse represents response structure for a successful activateKey API call.
 type ActivateKeyResponse struct {
 	// Code is the API response code (e.g., 0 for success).
-	Code          int     `json:"code"`
+	Code int `json:"code"`
 	// Message is the activation status message (e.g., "License valid").
-	Message       string  `json:"message"`
+	Message string `json:"message"`
 	// LicenseeName is the optional name of the licensee.
-	LicenseeName  *string `json:"licenseeName,omitempty"`
+	LicenseeName *string `json:"licenseeName,omitempty"`
 	// LicenseeEmail is the optional email of the licensee.
 	LicenseeEmail *string `json:"licenseeEmail,omitempty"`
 	// Metadata is the optional custom dictionary attached to the license key.
-	Metadata      map[string]interface{} `json:"metadata,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 	// VersionID is the optional associated product version ID.
-	VersionID     *string `json:"versionId,omitempty"`
+	VersionID *string `json:"versionId,omitempty"`
 	// Version is the optional detailed product version information.
-	Version       map[string]interface{} `json:"version,omitempty"`
+	Version map[string]interface{} `json:"version,omitempty"`
 	// AllowedHosts is an optional list of authorized machine IDs.
-	AllowedHosts  []string               `json:"allowedHosts,omitempty"`
+	AllowedHosts []string `json:"allowedHosts,omitempty"`
 }
 
 // DeactivateKeyParams represents parameters for the deactivateKey API endpoint.
 type DeactivateKeyParams struct {
 	// ProductID is the unique identifier of the product.
-	ProductID  string  `json:"productId"`
+	ProductID string `json:"productId"`
 	// LicenseKey is the license key to deactivate.
-	LicenseKey string  `json:"licenseKey"`
+	LicenseKey string `json:"licenseKey"`
 	// HostID is an optional unique identifier of the device to deactivate. If omitted, all devices are deactivated.
-	HostID     *string `json:"hostId,omitempty"`
+	HostID *string `json:"hostId,omitempty"`
 }
 
 // DeactivateKeyResponse represents response structure for a successful deactivateKey API call.
@@ -103,65 +103,65 @@ type DeactivateKeyResponse struct {
 	// Message is the confirmation message (e.g., "Device deactivated").
 	Message string `json:"message"`
 	// Code is the API response code (e.g., 0 for success).
-	Code    int    `json:"code"`
+	Code int `json:"code"`
 }
 
 // DeviceDetails represents device details included in the GetKeyResponse.
 type DeviceDetails struct {
 	// HostID is the updated field name.
-	HostID         string  `json:"hostId"`
+	HostID string `json:"hostId"`
 	// DeviceTag is the updated field name.
-	DeviceTag      *string `json:"deviceTag,omitempty"`
+	DeviceTag *string `json:"deviceTag,omitempty"`
 	// IPAddress is the updated field name.
-	IPAddress      *string `json:"ipAddress,omitempty"`
+	IPAddress *string `json:"ipAddress,omitempty"`
 	// ActivationTime is the updated field name.
-	ActivationTime string  `json:"activationTime"`
+	ActivationTime string `json:"activationTime"`
 }
 
 // LicenseDetails represents license details included in the GetKeyResponse.
 type LicenseDetails struct {
 	// ID is the license ID.
-	ID             string          `json:"id"`
+	ID string `json:"id"`
 	// Key is the license key.
-	Key            string          `json:"key"`
+	Key string `json:"key"`
 	// ProductID is the updated field name.
-	ProductID      string          `json:"productId"`
+	ProductID string `json:"productId"`
 	// MaxActivations is the updated field name.
-	MaxActivations int             `json:"maxActivations"`
+	MaxActivations int `json:"maxActivations"`
 	// Activations is the number of times the license has been activated.
-	Activations    int             `json:"activations"`
+	Activations int `json:"activations"`
 	// Devices is the list of devices associated with the license.
-	Devices        []DeviceDetails `json:"devices"`
+	Devices []DeviceDetails `json:"devices"`
 	// Activated indicates if the license is activated.
-	Activated      bool            `json:"activated"`
+	Activated bool `json:"activated"`
 	// ExpirationDate is the updated field name.
-	ExpirationDate *string         `json:"expirationDate,omitempty"`
+	ExpirationDate *string `json:"expirationDate,omitempty"`
 	// Metadata is the optional custom dictionary attached to the license key.
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 	// VersionID is the optional associated product version ID.
-	VersionID      *string         `json:"versionId,omitempty"`
+	VersionID *string `json:"versionId,omitempty"`
 	// Version is the optional detailed product version information.
-	Version        map[string]interface{} `json:"version,omitempty"`
+	Version map[string]interface{} `json:"version,omitempty"`
 	// AllowedHosts is the optional list of authorized machine IDs.
-	AllowedHosts   []string               `json:"allowedHosts,omitempty"`
+	AllowedHosts []string `json:"allowedHosts,omitempty"`
 }
 
 // CustomerDetails represents customer details included in the GetKeyResponse.
 type CustomerDetails struct {
 	// ID is the customer ID.
-	ID     string  `json:"id"`
+	ID string `json:"id"`
 	// Name is the optional updated customer name.
-	Name   *string `json:"name,omitempty"`
+	Name *string `json:"name,omitempty"`
 	// Email is the optional updated customer email.
-	Email  *string `json:"email,omitempty"`
+	Email *string `json:"email,omitempty"`
 	// Active indicates if the customer is active.
-	Active bool    `json:"active"`
+	Active bool `json:"active"`
 }
 
 // GetKeyParams represents parameters for the getKey API endpoint.
 type GetKeyParams struct {
 	// ProductID is the unique identifier of the product.
-	ProductID  string `json:"productId"`
+	ProductID string `json:"productId"`
 	// LicenseKey is the license key to retrieve.
 	LicenseKey string `json:"licenseKey"`
 }
@@ -173,7 +173,7 @@ type GetKeyResponse struct {
 	// Data contains the license and optional customer details.
 	Data struct {
 		// License contains the license details.
-		License  LicenseDetails  `json:"license"`
+		License LicenseDetails `json:"license"`
 		// Customer contains the optional customer details.
 		Customer *CustomerDetails `json:"customer,omitempty"`
 	} `json:"data"`
@@ -182,7 +182,7 @@ type GetKeyResponse struct {
 // BlockKeyParams represents parameters for the blockKey API endpoint.
 type BlockKeyParams struct {
 	// ProductID is the unique identifier of the product.
-	ProductID  string `json:"productId"`
+	ProductID string `json:"productId"`
 	// LicenseKey is the license key to block.
 	LicenseKey string `json:"licenseKey"`
 }
@@ -192,13 +192,13 @@ type BlockKeyResponse struct {
 	// Message is the confirmation message (e.g., "Key blocked").
 	Message string `json:"message"`
 	// Code is the API response code (e.g., 0 for success).
-	Code    int    `json:"code"`
+	Code int `json:"code"`
 }
 
 // UnblockKeyParams represents parameters for the unblockKey API endpoint.
 type UnblockKeyParams struct {
 	// ProductID is the unique identifier of the product.
-	ProductID  string `json:"productId"`
+	ProductID string `json:"productId"`
 	// LicenseKey is the license key to unblock.
 	LicenseKey string `json:"licenseKey"`
 }
@@ -208,13 +208,13 @@ type UnblockKeyResponse struct {
 	// Message is the confirmation message (e.g., "Key unblocked").
 	Message string `json:"message"`
 	// Code is the API response code (e.g., 0 for success).
-	Code    int    `json:"code"`
+	Code int `json:"code"`
 }
 
 // CreateCustomerParams represents parameters for the createCustomer API endpoint.
 type CreateCustomerParams struct {
 	// Name is the required customer name.
-	Name  string `json:"name"`
+	Name string `json:"name"`
 	// Email is the required customer email.
 	Email string `json:"email"`
 }
@@ -222,19 +222,19 @@ type CreateCustomerParams struct {
 // CreateCustomerResponse represents response structure for a successful createCustomer API call.
 type CreateCustomerResponse struct {
 	// ID is the customer ID.
-	ID      string `json:"id"`
+	ID string `json:"id"`
 	// Action is the action performed (e.g., "createCustomer").
-	Action  string `json:"action"`
+	Action string `json:"action"`
 	// Status indicates the success status.
-	Status  bool   `json:"status"`
+	Status bool `json:"status"`
 	// Message is the success message.
 	Message string `json:"message"`
 	// Data contains the created customer details.
-	Data    struct {
+	Data struct {
 		// ID is the customer ID.
-		ID    string `json:"id"`
+		ID string `json:"id"`
 		// Name is the customer name.
-		Name  string `json:"name"`
+		Name string `json:"name"`
 		// Email is the customer email.
 		Email string `json:"email"`
 	} `json:"data"`
@@ -245,13 +245,13 @@ type CreateCustomerResponse struct {
 // Customer represents customer information in the getAllCustomers response.
 type Customer struct {
 	// ID is the customer ID.
-	ID        string `json:"id"`
+	ID string `json:"id"`
 	// Name is the customer name.
-	Name      string `json:"name"`
+	Name string `json:"name"`
 	// Email is the customer email.
-	Email     string `json:"email"`
+	Email string `json:"email"`
 	// Active indicates if the customer is active.
-	Active    bool   `json:"active"`
+	Active bool `json:"active"`
 	// CreatedAt is the timestamp when the customer was created.
 	CreatedAt string `json:"createdAt"`
 	// UpdatedAt is the timestamp when the customer was last updated.
@@ -305,25 +305,25 @@ type GetCustomerWithKeysParams struct {
 // CustomerLicenseKey represents license key information in customer with keys response.
 type CustomerLicenseKey struct {
 	// ID is the license key ID.
-	ID             string  `json:"id"`
+	ID string `json:"id"`
 	// Key is the license key.
-	Key            string  `json:"key"`
+	Key string `json:"key"`
 	// ProductID is the product ID associated with the license key.
-	ProductID      string  `json:"productId"`
+	ProductID string `json:"productId"`
 	// MaxActivations is the maximum number of activations for the license key.
-	MaxActivations int     `json:"maxActivations"`
+	MaxActivations int `json:"maxActivations"`
 	// Activations is the number of times the license key has been activated.
-	Activations    int     `json:"activations"`
+	Activations int `json:"activations"`
 	// Activated indicates if the license key is activated.
-	Activated      bool    `json:"activated"`
+	Activated bool `json:"activated"`
 	// ExpirationDate is the expiration date of the license key.
 	ExpirationDate *string `json:"expirationDate,omitempty"`
 	// Metadata is the optional custom dictionary attached to the license key.
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 	// VersionID is the optional associated product version ID.
-	VersionID      *string `json:"versionId,omitempty"`
+	VersionID *string `json:"versionId,omitempty"`
 	// AllowedHosts is the optional list of authorized machine IDs.
-	AllowedHosts   []string `json:"allowedHosts,omitempty"`
+	AllowedHosts []string `json:"allowedHosts,omitempty"`
 }
 
 // GetCustomerWithKeysResponse represents response structure for a successful getCustomerWithKeys API call.
@@ -331,11 +331,11 @@ type GetCustomerWithKeysResponse struct {
 	// Action is the action performed (e.g., "getCustomerWithKeys").
 	Action string `json:"action"`
 	// Status indicates the success status.
-	Status bool   `json:"status"`
+	Status bool `json:"status"`
 	// Data contains the customer and license keys information.
-	Data   struct {
+	Data struct {
 		// Customer contains the customer details.
-		Customer    Customer            `json:"customer"`
+		Customer Customer `json:"customer"`
 		// LicenseKeys contains the array of license keys associated with the customer.
 		LicenseKeys []CustomerLicenseKey `json:"licenseKeys"`
 	} `json:"data"`
@@ -346,27 +346,27 @@ type GetCustomerWithKeysResponse struct {
 // UpdateCustomerParams represents parameters for the updateCustomer API endpoint.
 type UpdateCustomerParams struct {
 	// CustomerID is the required customer ID.
-	CustomerID string  `json:"customerId"`
+	CustomerID string `json:"customerId"`
 	// Name is the optional updated customer name.
-	Name       *string `json:"name,omitempty"`
+	Name *string `json:"name,omitempty"`
 	// Email is the optional updated customer email.
-	Email      *string `json:"email,omitempty"`
+	Email *string `json:"email,omitempty"`
 	// Active is the optional customer active status.
-	Active     *bool   `json:"active,omitempty"`
+	Active *bool `json:"active,omitempty"`
 }
 
 // UpdateCustomerResponse represents response structure for a successful updateCustomer API call.
 type UpdateCustomerResponse struct {
 	// Action is the action performed (e.g., "updateCustomer").
-	Action  string   `json:"action"`
+	Action string `json:"action"`
 	// Status indicates the success status.
-	Status  bool     `json:"status"`
+	Status bool `json:"status"`
 	// Message is the status message.
-	Message string   `json:"message"`
+	Message string `json:"message"`
 	// Data contains the updated customer details.
-	Data    Customer `json:"data"`
+	Data Customer `json:"data"`
 	// Code is the API response code (e.g., 0 for success).
-	Code    int      `json:"code"`
+	Code int `json:"code"`
 }
 
 // ToggleCustomerStatusParams represents parameters for the toggleCustomerStatus API endpoint.
@@ -378,13 +378,13 @@ type ToggleCustomerStatusParams struct {
 // ToggleCustomerStatusResponse represents response structure for a successful toggleCustomerStatus API call.
 type ToggleCustomerStatusResponse struct {
 	// Action is the action performed (e.g., "toggleActive").
-	Action  string `json:"action"`
+	Action string `json:"action"`
 	// Status indicates the success status.
-	Status  bool   `json:"status"`
+	Status bool `json:"status"`
 	// Message is the status message (e.g., "Customer disabled").
 	Message string `json:"message"`
 	// Code is the API response code.
-	Code    int    `json:"code"`
+	Code int `json:"code"`
 }
 
 // GetCustomerByIdParams represents parameters for the getCustomerById API endpoint.
@@ -396,13 +396,13 @@ type GetCustomerByIdParams struct {
 // GetCustomerByIdResponse represents response structure for a successful getCustomerById API call.
 type GetCustomerByIdResponse struct {
 	// Action is the action performed (e.g., "getCustomerById").
-	Action string     `json:"action"`
+	Action string `json:"action"`
 	// Status indicates the success status.
-	Status bool       `json:"status"`
+	Status bool `json:"status"`
 	// Data is the array containing the customer object.
-	Data   []Customer `json:"data"`
+	Data []Customer `json:"data"`
 	// Code is the API response code.
-	Code   int        `json:"code"`
+	Code int `json:"code"`
 }
 
 // DeleteCustomerParams represents parameters for the deleteCustomer API endpoint.
@@ -414,25 +414,25 @@ type DeleteCustomerParams struct {
 // DeleteCustomerResponse represents response structure for a successful deleteCustomer API call.
 type DeleteCustomerResponse struct {
 	// Action is the action performed (e.g., "deleteCustomer").
-	Action  string `json:"action"`
+	Action string `json:"action"`
 	// Status indicates the success status.
-	Status  bool   `json:"status"`
+	Status bool `json:"status"`
 	// Message is the status message (e.g., "Customer deleted").
 	Message string `json:"message"`
 	// Code is the API response code.
-	Code    int    `json:"code"`
+	Code int `json:"code"`
 }
 
 // FloatingCheckoutParams represents parameters for the floating license checkout API endpoint.
 type FloatingCheckoutParams struct {
 	// ProductID is the unique identifier of the product.
-	ProductID      string  `json:"productId"`
+	ProductID string `json:"productId"`
 	// LicenseKey is the license key.
-	LicenseKey     string  `json:"licenseKey"`
+	LicenseKey string `json:"licenseKey"`
 	// HostID is the unique hardware identifier of the device.
-	HostID         string  `json:"hostId"`
+	HostID string `json:"hostId"`
 	// DeviceTag is an optional friendly name for the device.
-	DeviceTag      *string `json:"deviceTag,omitempty"`
+	DeviceTag *string `json:"deviceTag,omitempty"`
 	// UserIdentifier is an optional user identifier.
 	UserIdentifier *string `json:"userIdentifier,omitempty"`
 }
@@ -440,51 +440,51 @@ type FloatingCheckoutParams struct {
 // FloatingCheckoutResponse represents response structure for a successful floating license checkout API call.
 type FloatingCheckoutResponse struct {
 	// Code is the API response code (e.g., 0 for success).
-	Code              int                    `json:"code"`
+	Code int `json:"code"`
 	// Message is the activation status message.
-	Message           string                 `json:"message"`
+	Message string `json:"message"`
 	// SessionID is the unique session ID.
-	SessionID         string                 `json:"sessionId"`
+	SessionID string `json:"sessionId"`
 	// SessionSecret is the temporary session secret key.
-	SessionSecret     string                 `json:"sessionSecret"`
+	SessionSecret string `json:"sessionSecret"`
 	// NextNonce is the rotating nonce string to use for the next request.
-	NextNonce         string                 `json:"nextNonce"`
+	NextNonce string `json:"nextNonce"`
 	// ExpiresAt is the expiration time of the session in ISO 8601 format.
-	ExpiresAt         string                 `json:"expiresAt"`
+	ExpiresAt string `json:"expiresAt"`
 	// HeartbeatInterval is the interval (in seconds) the client must heartbeat within.
-	HeartbeatInterval int                    `json:"heartbeatInterval"`
+	HeartbeatInterval int `json:"heartbeatInterval"`
 	// Metadata is the optional custom dictionary attached to the license key.
-	Metadata          map[string]interface{} `json:"metadata,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 	// CurrentSessions is the number of active sessions for the license key.
-	CurrentSessions   *int                   `json:"currentSessions,omitempty"`
+	CurrentSessions *int `json:"currentSessions,omitempty"`
 	// MaxSessions is the maximum concurrent sessions allowed for the license key.
-	MaxSessions       *int                   `json:"maxSessions,omitempty"`
+	MaxSessions *int `json:"maxSessions,omitempty"`
 	// LicenseeName is the optional name of the customer licensee.
-	LicenseeName      *string                `json:"licenseeName,omitempty"`
+	LicenseeName *string `json:"licenseeName,omitempty"`
 	// LicenseeEmail is the optional email of the customer licensee.
-	LicenseeEmail     *string                `json:"licenseeEmail,omitempty"`
+	LicenseeEmail *string `json:"licenseeEmail,omitempty"`
 }
 
 // FloatingHeartbeatParams represents parameters for the floating license heartbeat API endpoint.
 type FloatingHeartbeatParams struct {
 	// ProductID is the unique identifier of the product.
-	ProductID  string      `json:"productId"`
+	ProductID string `json:"productId"`
 	// LicenseKey is the license key.
-	LicenseKey string      `json:"licenseKey"`
+	LicenseKey string `json:"licenseKey"`
 	// SessionID is the unique session ID.
-	SessionID  string      `json:"sessionId"`
+	SessionID string `json:"sessionId"`
 	// Timestamp is the rotating nonce (nextNonce) received from the previous response.
-	Timestamp  interface{} `json:"timestamp"`
+	Timestamp interface{} `json:"timestamp"`
 	// Signature is the HMAC-SHA256 signature generated using the sessionSecret over the payload 'sessionId:nonce'.
-	Signature  string      `json:"signature"`
+	Signature string `json:"signature"`
 }
 
 // FloatingHeartbeatResponse represents response structure for a successful floating license heartbeat API call.
 type FloatingHeartbeatResponse struct {
 	// Code is the API response code (e.g., 0 for success).
-	Code      int    `json:"code"`
+	Code int `json:"code"`
 	// Message is the response status message.
-	Message   string `json:"message"`
+	Message string `json:"message"`
 	// ExpiresAt is the extended expiration time of the session in ISO 8601 format.
 	ExpiresAt string `json:"expiresAt"`
 	// NextNonce is the newly rotated nonce to be used for the next subsequent heartbeat.
@@ -494,21 +494,21 @@ type FloatingHeartbeatResponse struct {
 // FloatingCheckinParams represents parameters for the floating license checkin API endpoint.
 type FloatingCheckinParams struct {
 	// ProductID is the unique identifier of the product.
-	ProductID  string      `json:"productId"`
+	ProductID string `json:"productId"`
 	// LicenseKey is the license key.
-	LicenseKey string      `json:"licenseKey"`
+	LicenseKey string `json:"licenseKey"`
 	// SessionID is the unique session ID.
-	SessionID  string      `json:"sessionId"`
+	SessionID string `json:"sessionId"`
 	// Timestamp is the rotating nonce (nextNonce) received from the previous response.
-	Timestamp  interface{} `json:"timestamp"`
+	Timestamp interface{} `json:"timestamp"`
 	// Signature is the HMAC-SHA256 signature generated using the sessionSecret over the payload 'sessionId:nonce'.
-	Signature  string      `json:"signature"`
+	Signature string `json:"signature"`
 }
 
 // FloatingCheckinResponse represents response structure for a successful floating license checkin API call.
 type FloatingCheckinResponse struct {
 	// Code is the API response code (e.g., 0 for success).
-	Code    int    `json:"code"`
+	Code int `json:"code"`
 	// Message is the confirmation message.
 	Message string `json:"message"`
 }
