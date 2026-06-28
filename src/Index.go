@@ -44,8 +44,9 @@ func New(apiKey string, baseURL string) (*Client, error) {
 // endpoint: API endpoint.
 // params: Request body parameters.
 // result: Pointer to the result struct to unmarshal response into.
+// opts: Optional request configurations (e.g. idempotency keys).
 // Returns an error if the request fails or the API returns an error.
-func (c *Client) handleRequest(method, endpoint string, params interface{}, result interface{}) error {
+func (c *Client) handleRequest(method, endpoint string, params interface{}, result interface{}, opts ...*RequestOptions) error {
 	jsonData, err := json.Marshal(params)
 	if err != nil {
 		return &ApiError{
@@ -64,6 +65,10 @@ func (c *Client) handleRequest(method, endpoint string, params interface{}, resu
 
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	req.Header.Set("Content-Type", "application/json")
+
+	if len(opts) > 0 && opts[0] != nil && opts[0].IdempotencyKey != "" {
+		req.Header.Set("Idempotency-Key", opts[0].IdempotencyKey)
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -178,8 +183,9 @@ func (c *Client) handleGetRequest(endpoint string, queryParams map[string]string
 // endpoint: API endpoint.
 // queryParams: Query parameters as a map.
 // result: Pointer to the result struct to unmarshal response into.
+// opts: Optional request configurations (e.g. idempotency keys).
 // Returns an error if the request fails or the API returns an error.
-func (c *Client) handleDeleteRequest(endpoint string, queryParams map[string]string, result interface{}) error {
+func (c *Client) handleDeleteRequest(endpoint string, queryParams map[string]string, result interface{}, opts ...*RequestOptions) error {
 	req, err := http.NewRequest("DELETE", c.baseURL+endpoint, nil)
 	if err != nil {
 		return &ApiError{
@@ -198,6 +204,10 @@ func (c *Client) handleDeleteRequest(endpoint string, queryParams map[string]str
 
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	req.Header.Set("Content-Type", "application/json")
+
+	if len(opts) > 0 && opts[0] != nil && opts[0].IdempotencyKey != "" {
+		req.Header.Set("Idempotency-Key", opts[0].IdempotencyKey)
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -243,10 +253,11 @@ func (c *Client) handleDeleteRequest(endpoint string, queryParams map[string]str
 
 // CreateKey creates a new license key.
 // params: Parameters for creating the key.
+// opts: Optional request configurations (e.g. idempotency keys).
 // Returns the created key information or an error.
-func (c *Client) CreateKey(params CreateKeyParams) (*CreateKeyResponse, error) {
+func (c *Client) CreateKey(params CreateKeyParams, opts ...*RequestOptions) (*CreateKeyResponse, error) {
 	var result CreateKeyResponse
-	err := c.handleRequest("POST", "/key", params, &result)
+	err := c.handleRequest("POST", "/key", params, &result, opts...)
 	return &result, err
 }
 
@@ -256,46 +267,51 @@ func (c *Client) CreateKey(params CreateKeyParams) (*CreateKeyResponse, error) {
 // Every subsequent activation attempt without a hostId will be treated as a NEW machine.
 // Applications using anonymous activations MUST cache the validation results locally.
 // params: Parameters for activating the key.
+// opts: Optional request configurations (e.g. idempotency keys).
 // Returns the activation status or an error.
-func (c *Client) ActivateKey(params ActivateKeyParams) (*ActivateKeyResponse, error) {
+func (c *Client) ActivateKey(params ActivateKeyParams, opts ...*RequestOptions) (*ActivateKeyResponse, error) {
 	var result ActivateKeyResponse
-	err := c.handleRequest("POST", "/key/activate", params, &result)
+	err := c.handleRequest("POST", "/key/activate", params, &result, opts...)
 	return &result, err
 }
 
 // DeactivateKey deactivates a device from a license key.
 // params: Parameters for deactivating the key.
+// opts: Optional request configurations (e.g. idempotency keys).
 // Returns the deactivation confirmation or an error.
-func (c *Client) DeactivateKey(params DeactivateKeyParams) (*DeactivateKeyResponse, error) {
+func (c *Client) DeactivateKey(params DeactivateKeyParams, opts ...*RequestOptions) (*DeactivateKeyResponse, error) {
 	var result DeactivateKeyResponse
-	err := c.handleRequest("POST", "/key/deactivate", params, &result)
+	err := c.handleRequest("POST", "/key/deactivate", params, &result, opts...)
 	return &result, err
 }
 
 // FloatingCheckout checks out a floating license seat.
 // params: Parameters for checking out the license.
+// opts: Optional request configurations (e.g. idempotency keys).
 // Returns the checkout response or an error.
-func (c *Client) FloatingCheckout(params FloatingCheckoutParams) (*FloatingCheckoutResponse, error) {
+func (c *Client) FloatingCheckout(params FloatingCheckoutParams, opts ...*RequestOptions) (*FloatingCheckoutResponse, error) {
 	var result FloatingCheckoutResponse
-	err := c.handleRequest("POST", "/key/checkout", params, &result)
+	err := c.handleRequest("POST", "/key/checkout", params, &result, opts...)
 	return &result, err
 }
 
 // FloatingHeartbeat sends a heartbeat to keep a floating license session alive.
 // params: Parameters for the heartbeat.
+// opts: Optional request configurations (e.g. idempotency keys).
 // Returns the heartbeat response or an error.
-func (c *Client) FloatingHeartbeat(params FloatingHeartbeatParams) (*FloatingHeartbeatResponse, error) {
+func (c *Client) FloatingHeartbeat(params FloatingHeartbeatParams, opts ...*RequestOptions) (*FloatingHeartbeatResponse, error) {
 	var result FloatingHeartbeatResponse
-	err := c.handleRequest("POST", "/key/heartbeat", params, &result)
+	err := c.handleRequest("POST", "/key/heartbeat", params, &result, opts...)
 	return &result, err
 }
 
 // FloatingCheckin checks in a floating license session, releasing the seat.
 // params: Parameters for checking in the license.
+// opts: Optional request configurations (e.g. idempotency keys).
 // Returns the checkin response or an error.
-func (c *Client) FloatingCheckin(params FloatingCheckinParams) (*FloatingCheckinResponse, error) {
+func (c *Client) FloatingCheckin(params FloatingCheckinParams, opts ...*RequestOptions) (*FloatingCheckinResponse, error) {
 	var result FloatingCheckinResponse
-	err := c.handleRequest("POST", "/key/checkin", params, &result)
+	err := c.handleRequest("POST", "/key/checkin", params, &result, opts...)
 	return &result, err
 }
 
@@ -314,28 +330,31 @@ func (c *Client) GetKey(params GetKeyParams) (*GetKeyResponse, error) {
 
 // BlockKey blocks a specific license key.
 // params: Parameters for blocking the key.
+// opts: Optional request configurations (e.g. idempotency keys).
 // Returns the block confirmation or an error.
-func (c *Client) BlockKey(params BlockKeyParams) (*BlockKeyResponse, error) {
+func (c *Client) BlockKey(params BlockKeyParams, opts ...*RequestOptions) (*BlockKeyResponse, error) {
 	var result BlockKeyResponse
-	err := c.handleRequest("POST", "/key/block", params, &result)
+	err := c.handleRequest("POST", "/key/block", params, &result, opts...)
 	return &result, err
 }
 
 // UnblockKey unblocks a previously blocked license key.
 // params: Parameters for unblocking the key.
+// opts: Optional request configurations (e.g. idempotency keys).
 // Returns the unblock confirmation or an error.
-func (c *Client) UnblockKey(params UnblockKeyParams) (*UnblockKeyResponse, error) {
+func (c *Client) UnblockKey(params UnblockKeyParams, opts ...*RequestOptions) (*UnblockKeyResponse, error) {
 	var result UnblockKeyResponse
-	err := c.handleRequest("POST", "/key/unblock", params, &result)
+	err := c.handleRequest("POST", "/key/unblock", params, &result, opts...)
 	return &result, err
 }
 
 // CreateCustomer creates a new customer.
 // params: Parameters for creating the customer.
+// opts: Optional request configurations (e.g. idempotency keys).
 // Returns the created customer information or an error.
-func (c *Client) CreateCustomer(params CreateCustomerParams) (*CreateCustomerResponse, error) {
+func (c *Client) CreateCustomer(params CreateCustomerParams, opts ...*RequestOptions) (*CreateCustomerResponse, error) {
 	var result CreateCustomerResponse
-	err := c.handleRequest("POST", "/customer", params, &result)
+	err := c.handleRequest("POST", "/customer", params, &result, opts...)
 	return &result, err
 }
 
@@ -373,31 +392,34 @@ func (c *Client) GetCustomerWithKeys(params GetCustomerWithKeysParams) (*GetCust
 
 // UpdateCustomer updates an existing customer.
 // params: Parameters for updating the customer.
+// opts: Optional request configurations (e.g. idempotency keys).
 // Returns the update confirmation or an error.
-func (c *Client) UpdateCustomer(params UpdateCustomerParams) (*UpdateCustomerResponse, error) {
+func (c *Client) UpdateCustomer(params UpdateCustomerParams, opts ...*RequestOptions) (*UpdateCustomerResponse, error) {
 	var result UpdateCustomerResponse
-	err := c.handleRequest("PUT", "/customer/by-id", params, &result)
+	err := c.handleRequest("PUT", "/customer/by-id", params, &result, opts...)
 	return &result, err
 }
 
 // DeleteCustomer deletes a customer and all associated license keys permanently.
 // params: Parameters containing the customer ID.
+// opts: Optional request configurations (e.g. idempotency keys).
 // Returns the deletion confirmation or an error.
-func (c *Client) DeleteCustomer(params DeleteCustomerParams) (*DeleteCustomerResponse, error) {
+func (c *Client) DeleteCustomer(params DeleteCustomerParams, opts ...*RequestOptions) (*DeleteCustomerResponse, error) {
 	var result DeleteCustomerResponse
 	queryParams := map[string]string{
 		"customerId": params.CustomerID,
 	}
-	err := c.handleDeleteRequest("/customer/by-id", queryParams, &result)
+	err := c.handleDeleteRequest("/customer/by-id", queryParams, &result, opts...)
 	return &result, err
 }
 
 // ToggleCustomerStatus toggles the status of a customer (active/inactive).
 // params: Parameters containing the customer ID.
+// opts: Optional request configurations (e.g. idempotency keys).
 // Returns the status toggle confirmation or an error.
-func (c *Client) ToggleCustomerStatus(params ToggleCustomerStatusParams) (*ToggleCustomerStatusResponse, error) {
+func (c *Client) ToggleCustomerStatus(params ToggleCustomerStatusParams, opts ...*RequestOptions) (*ToggleCustomerStatusResponse, error) {
 	var result ToggleCustomerStatusResponse
-	err := c.handleRequest("POST", "/customer/disable", params, &result)
+	err := c.handleRequest("POST", "/customer/disable", params, &result, opts...)
 	return &result, err
 }
 

@@ -512,3 +512,8 @@ type FloatingCheckinResponse struct {
 	// Message is the confirmation message.
 	Message string `json:"message"`
 }
+
+// RequestOptions contains optional parameters for Keymint API requests (e.g. idempotency keys).
+type RequestOptions struct {
+	IdempotencyKey string
+}
