@@ -1,6 +1,6 @@
 # Keymint Go
 
-A professional, production-ready SDK for integrating with the Keymint API in Go. Provides robust access to all major Keymint features, with idiomatic Go error handling.
+License key validation, activation, and management for Go. Supports node-locking, offline licensing, and hardware fingerprinting. Production-ready SDK for integrating with the Keymint API with idiomatic Go error handling.
 
 ## Features
 - **Idiomatic Go**: Clean, type-safe API using a `Client` struct and `keymint.New()` constructor.
