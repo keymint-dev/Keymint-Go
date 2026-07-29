@@ -251,6 +251,73 @@ func (c *Client) handleDeleteRequest(endpoint string, queryParams map[string]str
 	return nil
 }
 
+// handlePatchRequest is a generic method to handle PATCH requests.
+func (c *Client) handlePatchRequest(endpoint string, params interface{}, result interface{}, opts ...*RequestOptions) error {
+	jsonData, err := json.Marshal(params)
+	if err != nil {
+		return &ApiError{
+			Message: fmt.Sprintf("failed to marshal request: %v", err),
+			Code:    -1,
+		}
+	}
+
+	req, err := http.NewRequest("PATCH", c.baseURL+endpoint, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return &ApiError{
+			Message: fmt.Sprintf("failed to create request: %v", err),
+			Code:    -1,
+		}
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	if len(opts) > 0 && opts[0] != nil && opts[0].IdempotencyKey != "" {
+		req.Header.Set("Idempotency-Key", opts[0].IdempotencyKey)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return &ApiError{
+			Message: fmt.Sprintf("request failed: %v", err),
+			Code:    -1,
+		}
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return &ApiError{
+			Message: fmt.Sprintf("failed to read response: %v", err),
+			Code:    -1,
+			Status:  &resp.StatusCode,
+		}
+	}
+
+	if resp.StatusCode >= 400 {
+		var apiErr ApiError
+		if err := json.Unmarshal(body, &apiErr); err == nil && apiErr.Message != "" {
+			apiErr.Status = &resp.StatusCode
+			return &apiErr
+		}
+		return &ApiError{
+			Message: fmt.Sprintf("API error: %s", string(body)),
+			Code:    -1,
+			Status:  &resp.StatusCode,
+		}
+	}
+
+	if err := json.Unmarshal(body, result); err != nil {
+		return &ApiError{
+			Message: fmt.Sprintf("failed to unmarshal response: %v", err),
+			Code:    -1,
+			Status:  &resp.StatusCode,
+		}
+	}
+
+	return nil
+}
+
 // CreateKey creates a new license key.
 // params: Parameters for creating the key.
 // opts: Optional request configurations (e.g. idempotency keys).
@@ -348,6 +415,20 @@ func (c *Client) UnblockKey(params UnblockKeyParams, opts ...*RequestOptions) (*
 	return &result, err
 }
 
+// UpdateKey updates an existing license key via PATCH /api/key.
+func (c *Client) UpdateKey(params UpdateKeyParams, opts ...*RequestOptions) (*UpdateKeyResponse, error) {
+	var result UpdateKeyResponse
+	err := c.handlePatchRequest("/key", params, &result, opts...)
+	return &result, err
+}
+
+// SignKey signs a license key for offline (air-gapped) validation via POST /api/key/sign.
+func (c *Client) SignKey(params SignKeyParams, opts ...*RequestOptions) (*SignKeyResponse, error) {
+	var result SignKeyResponse
+	err := c.handleRequest("POST", "/key/sign", params, &result, opts...)
+	return &result, err
+}
+
 // CreateCustomer creates a new customer.
 // params: Parameters for creating the customer.
 // opts: Optional request configurations (e.g. idempotency keys).
@@ -378,16 +459,15 @@ func (c *Client) GetAllCustomers(params GetAllCustomersParams) (*GetAllCustomers
 	return &result, err
 }
 
-// GetCustomerWithKeys retrieves a customer along with their associated license keys.
-// params: Parameters containing the customer ID.
-// Returns the customer information with associated license keys or an error.
-func (c *Client) GetCustomerWithKeys(params GetCustomerWithKeysParams) (*GetCustomerWithKeysResponse, error) {
-	var result GetCustomerWithKeysResponse
+// GetCustomerWithKeys retrieves license keys belonging to a specific customer.
+// Returns a flat list of license keys.
+func (c *Client) GetCustomerWithKeys(params GetCustomerWithKeysParams) ([]CustomerLicenseKey, error) {
+	var result []CustomerLicenseKey
 	queryParams := map[string]string{
 		"customerId": params.CustomerID,
 	}
 	err := c.handleGetRequest("/customer/keys", queryParams, &result)
-	return &result, err
+	return result, err
 }
 
 // UpdateCustomer updates an existing customer.
@@ -419,7 +499,8 @@ func (c *Client) DeleteCustomer(params DeleteCustomerParams, opts ...*RequestOpt
 // Returns the status toggle confirmation or an error.
 func (c *Client) ToggleCustomerStatus(params ToggleCustomerStatusParams, opts ...*RequestOptions) (*ToggleCustomerStatusResponse, error) {
 	var result ToggleCustomerStatusResponse
-	err := c.handleRequest("POST", "/customer/disable", params, &result, opts...)
+	endpoint := fmt.Sprintf("/customer/disable?customerId=%s", params.CustomerID)
+	err := c.handleRequest("POST", endpoint, struct{}{}, &result, opts...)
 	return &result, err
 }
 

@@ -71,8 +71,10 @@ Keymint provides utilities to uniquely identify machines for node-locking:
 | `ActivateKey`    | Activates a license key for a device.           |
 | `DeactivateKey`  | Deactivates a device from a license key.        |
 | `GetKey`         | Retrieves detailed information about a key.     |
+| `UpdateKey`      | Updates an existing license key.                |
 | `BlockKey`       | Blocks a license key.                           |
 | `UnblockKey`     | Unblocks a previously blocked license key.      |
+| `SignKey`        | Signs a key for offline (air-gapped) validation.|
 | `FloatingCheckout` | Checks out a floating license seat.            |
 | `FloatingHeartbeat`| Sends a heartbeat to keep a session alive.     |
 | `FloatingCheckin`  | Checks in a session, releasing the seat.       |

@@ -10,6 +10,24 @@ type NewCustomer struct {
 	Email *string `json:"email,omitempty"`
 }
 
+// KeyFormat represents key format options for custom license key shapes.
+type KeyFormat struct {
+	// Sections is the optional number of sections (1-10).
+	Sections *int `json:"sections,omitempty"`
+	// SectionLength is the optional length of each section (1-32).
+	SectionLength *int `json:"sectionLength,omitempty"`
+	// Separator is the optional separator character (max 3 chars).
+	Separator *string `json:"separator,omitempty"`
+	// Charset is the optional custom character set (no whitespace).
+	Charset *string `json:"charset,omitempty"`
+	// Prefix is the optional prefix prepended to the key (max 16 chars).
+	Prefix *string `json:"prefix,omitempty"`
+	// Suffix is the optional suffix appended to the key (max 16 chars).
+	Suffix *string `json:"suffix,omitempty"`
+	// Case is the optional character case: "upper", "lower", or "mixed".
+	Case *string `json:"case,omitempty"`
+}
+
 // CreateKeyParams represents parameters for the createKey API endpoint.
 type CreateKeyParams struct {
 	// ProductID is the unique identifier of the product.
@@ -28,6 +46,18 @@ type CreateKeyParams struct {
 	NewCustomer *NewCustomer `json:"newCustomer,omitempty"`
 	// AllowedHosts is an optional list of machine IDs authorized to use this license.
 	AllowedHosts []string `json:"allowedHosts,omitempty"`
+	// Format is an optional custom key format.
+	Format *KeyFormat `json:"format,omitempty"`
+	// AmountKeys is the optional number of keys to generate at once (bulk creation).
+	AmountKeys *string `json:"amountKeys,omitempty"`
+	// LicenseType is the optional license type: "node-locked" or "floating" (defaults to "node-locked").
+	LicenseType *string `json:"licenseType,omitempty"`
+	// MaxConcurrentSessions is the optional max concurrent floating sessions.
+	MaxConcurrentSessions *int `json:"maxConcurrentSessions,omitempty"`
+	// HeartbeatInterval is the optional floating heartbeat interval in seconds (min 60).
+	HeartbeatInterval *int `json:"heartbeatInterval,omitempty"`
+	// SessionLeaseDuration is the optional floating session lease duration in seconds (min 300).
+	SessionLeaseDuration *int `json:"sessionLeaseDuration,omitempty"`
 }
 
 // CreateKeyResponse represents response structure for a successful createKey API call.
@@ -66,6 +96,16 @@ type ActivateKeyParams struct {
 	HostID *string `json:"hostId,omitempty"`
 	// DeviceTag is an optional user-friendly name for the device.
 	DeviceTag *string `json:"deviceTag,omitempty"`
+	// Licensee is an optional customer name and email to set during activation.
+	Licensee *ActivationLicensee `json:"licensee,omitempty"`
+	// Version is an optional product version string (max 32 chars).
+	Version *string `json:"version,omitempty"`
+}
+
+// ActivationLicensee represents customer info set during activation.
+type ActivationLicensee struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
 }
 
 // ActivateKeyResponse represents response structure for a successful activateKey API call.
@@ -327,21 +367,8 @@ type CustomerLicenseKey struct {
 }
 
 // GetCustomerWithKeysResponse represents response structure for a successful getCustomerWithKeys API call.
-type GetCustomerWithKeysResponse struct {
-	// Action is the action performed (e.g., "getCustomerWithKeys").
-	Action string `json:"action"`
-	// Status indicates the success status.
-	Status bool `json:"status"`
-	// Data contains the customer and license keys information.
-	Data struct {
-		// Customer contains the customer details.
-		Customer Customer `json:"customer"`
-		// LicenseKeys contains the array of license keys associated with the customer.
-		LicenseKeys []CustomerLicenseKey `json:"licenseKeys"`
-	} `json:"data"`
-	// Code is the API response code (e.g., 0 for success).
-	Code int `json:"code"`
-}
+// Returns a flat list of license keys for the customer.
+type GetCustomerWithKeysResponse []CustomerLicenseKey
 
 // UpdateCustomerParams represents parameters for the updateCustomer API endpoint.
 type UpdateCustomerParams struct {
@@ -351,8 +378,6 @@ type UpdateCustomerParams struct {
 	Name *string `json:"name,omitempty"`
 	// Email is the optional updated customer email.
 	Email *string `json:"email,omitempty"`
-	// Active is the optional customer active status.
-	Active *bool `json:"active,omitempty"`
 }
 
 // UpdateCustomerResponse represents response structure for a successful updateCustomer API call.
@@ -511,6 +536,66 @@ type FloatingCheckinResponse struct {
 	Code int `json:"code"`
 	// Message is the confirmation message.
 	Message string `json:"message"`
+}
+
+// UpdateKeyParams represents parameters for the updateKey API endpoint (PATCH /api/key).
+type UpdateKeyParams struct {
+	// ProductID is the unique identifier of the product.
+	ProductID string `json:"productId"`
+	// LicenseKey is the license key to update.
+	LicenseKey string `json:"licenseKey"`
+	// MaxActivations is the optional new max activations count (string or number).
+	MaxActivations interface{} `json:"maxActivations,omitempty"`
+	// ExpiryDate is the optional new expiration date in ISO 8601 format.
+	ExpiryDate *string `json:"expiryDate,omitempty"`
+	// CustomerID is the optional new customer ID to associate.
+	CustomerID *string `json:"customerId,omitempty"`
+	// NewCustomer is an optional object to create and associate a new customer.
+	NewCustomer *NewCustomer `json:"newCustomer,omitempty"`
+	// Metadata is the optional updated custom metadata.
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	// VersionID is the optional updated product version ID.
+	VersionID *string `json:"versionId,omitempty"`
+	// AllowedHosts is the optional updated list of authorized machine IDs.
+	AllowedHosts []string `json:"allowedHosts,omitempty"`
+	// LicenseType is the optional license type: "node-locked" or "floating".
+	LicenseType *string `json:"licenseType,omitempty"`
+	// MaxConcurrentSessions is the optional updated max concurrent sessions.
+	MaxConcurrentSessions *int `json:"maxConcurrentSessions,omitempty"`
+	// HeartbeatInterval is the optional updated heartbeat interval in seconds (min 60).
+	HeartbeatInterval *int `json:"heartbeatInterval,omitempty"`
+	// SessionLeaseDuration is the optional updated session lease duration in seconds (min 300).
+	SessionLeaseDuration *int `json:"sessionLeaseDuration,omitempty"`
+}
+
+// UpdateKeyResponse represents response structure for a successful updateKey API call.
+type UpdateKeyResponse struct {
+	// Code is the API response code (e.g., 0 for success).
+	Code int `json:"code"`
+	// Message is the confirmation message.
+	Message string `json:"message"`
+	// AffectedCount is the number of keys affected.
+	AffectedCount *int `json:"affectedCount,omitempty"`
+}
+
+// SignKeyParams represents parameters for the signKey API endpoint (POST /api/key/sign).
+type SignKeyParams struct {
+	// ProductID is the unique identifier of the product.
+	ProductID string `json:"productId"`
+	// LicenseKey is the license key to sign.
+	LicenseKey string `json:"licenseKey"`
+	// HostID is the required machine code to bind the offline license to.
+	HostID string `json:"hostId"`
+	// TTL is the optional time-to-live in seconds (min 60).
+	TTL *int `json:"ttl,omitempty"`
+}
+
+// SignKeyResponse represents response structure for a successful signKey API call.
+type SignKeyResponse struct {
+	// Code is the API response code (e.g., 0 for success).
+	Code int `json:"code"`
+	// File contains the signed license file (signedKey, keyId, publicKeyFingerprint) — may be a JSON string.
+	File interface{} `json:"file"`
 }
 
 // RequestOptions contains optional parameters for Keymint API requests (e.g. idempotency keys).
