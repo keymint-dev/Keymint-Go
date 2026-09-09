@@ -64,8 +64,20 @@ type CreateKeyParams struct {
 type CreateKeyResponse struct {
 	// Code is the API response code (e.g., 0 for success).
 	Code int `json:"code"`
-	// Key is the generated license key.
+	// Key is the generated license key for single-key creation.
 	Key string `json:"key"`
+	// Keys holds generated license keys for bulk creation.
+	Keys []string `json:"keys,omitempty"`
+}
+
+// ApiErrorDetails carries the nested error envelope from the current Keymint API.
+type ApiErrorDetails struct {
+	// Code is the string error code (e.g., "RATE_LIMIT_EXCEEDED").
+	Code *string `json:"code,omitempty"`
+	// Message is the detailed error message.
+	Message *string `json:"message,omitempty"`
+	// Details holds optional extra error context.
+	Details interface{} `json:"details,omitempty"`
 }
 
 // ApiError represents standard error response structure from the KeyMint API.
@@ -76,6 +88,8 @@ type ApiError struct {
 	Code int `json:"code"`
 	// Status is the optional HTTP status code.
 	Status *int `json:"status,omitempty"`
+	// ErrorDetail holds the nested error envelope when present.
+	ErrorDetail *ApiErrorDetails `json:"error,omitempty"`
 }
 
 // Error implements the error interface for ApiError.
@@ -144,6 +158,8 @@ type DeactivateKeyResponse struct {
 	Message string `json:"message"`
 	// Code is the API response code (e.g., 0 for success).
 	Code int `json:"code"`
+	// DevicesRemoved is the number of device activations removed.
+	DevicesRemoved *int `json:"devicesRemoved,omitempty"`
 }
 
 // DeviceDetails represents device details included in the GetKeyResponse.
@@ -297,6 +313,7 @@ type Customer struct {
 	// UpdatedAt is the timestamp when the customer was last updated.
 	UpdatedAt string `json:"updatedAt"`
 	// CreatedBy is the identifier of the user who created the customer.
+	// The REST API sanitizes this field, so it is usually empty.
 	CreatedBy string `json:"createdBy"`
 }
 
@@ -406,10 +423,14 @@ type ToggleCustomerStatusResponse struct {
 	Action string `json:"action"`
 	// Status indicates the success status.
 	Status bool `json:"status"`
-	// Message is the status message (e.g., "Customer disabled").
-	Message string `json:"message"`
-	// Code is the API response code.
-	Code int `json:"code"`
+	// Message is the status message when present (absent on current API envelope).
+	Message *string `json:"message,omitempty"`
+	// Code is the API response code when present.
+	Code *int `json:"code,omitempty"`
+	// CustomerName is the customer name as returned by the API.
+	CustomerName *string `json:"customerName,omitempty"`
+	// Active is the resulting active flag as returned by the API.
+	Active *bool `json:"active,omitempty"`
 }
 
 // GetCustomerByIdParams represents parameters for the getCustomerById API endpoint.
@@ -460,6 +481,12 @@ type FloatingCheckoutParams struct {
 	DeviceTag *string `json:"deviceTag,omitempty"`
 	// UserIdentifier is an optional user identifier.
 	UserIdentifier *string `json:"userIdentifier,omitempty"`
+	// Timestamp carries the session's current nextNonce when re-checking out
+	// an existing active hostId (session extension proof of possession).
+	Timestamp interface{} `json:"timestamp,omitempty"`
+	// Signature is HMAC-SHA256(sessionSecret, "sessionId:timestamp"), required
+	// for session extension (see GenerateSessionSignature).
+	Signature *string `json:"signature,omitempty"`
 }
 
 // FloatingCheckoutResponse represents response structure for a successful floating license checkout API call.
