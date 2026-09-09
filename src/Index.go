@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -37,6 +38,24 @@ func New(apiKey string, baseURL string) (*Client, error) {
 			Timeout: 30 * time.Second,
 		},
 	}, nil
+}
+
+// parseApiError decodes an error response body, surfacing the nested error
+// envelope message when the API provides one.
+func parseApiError(body []byte, statusCode int) *ApiError {
+	var apiErr ApiError
+	if err := json.Unmarshal(body, &apiErr); err == nil && apiErr.Message != "" {
+		if apiErr.ErrorDetail != nil && apiErr.ErrorDetail.Message != nil && *apiErr.ErrorDetail.Message != "" {
+			apiErr.Message = *apiErr.ErrorDetail.Message
+		}
+		apiErr.Status = &statusCode
+		return &apiErr
+	}
+	return &ApiError{
+		Message: fmt.Sprintf("API error: %s", string(body)),
+		Code:    -1,
+		Status:  &statusCode,
+	}
 }
 
 // handleRequest is a generic method to handle POST/PUT requests.
@@ -89,16 +108,7 @@ func (c *Client) handleRequest(method, endpoint string, params interface{}, resu
 	}
 
 	if resp.StatusCode >= 400 {
-		var apiErr ApiError
-		if err := json.Unmarshal(body, &apiErr); err == nil && apiErr.Message != "" {
-			apiErr.Status = &resp.StatusCode
-			return &apiErr
-		}
-		return &ApiError{
-			Message: fmt.Sprintf("API error: %s", string(body)),
-			Code:    -1,
-			Status:  &resp.StatusCode,
-		}
+		return parseApiError(body, resp.StatusCode)
 	}
 
 	if err := json.Unmarshal(body, result); err != nil {
@@ -156,16 +166,7 @@ func (c *Client) handleGetRequest(endpoint string, queryParams map[string]string
 	}
 
 	if resp.StatusCode >= 400 {
-		var apiErr ApiError
-		if err := json.Unmarshal(body, &apiErr); err == nil && apiErr.Message != "" {
-			apiErr.Status = &resp.StatusCode
-			return &apiErr
-		}
-		return &ApiError{
-			Message: fmt.Sprintf("API error: %s", string(body)),
-			Code:    -1,
-			Status:  &resp.StatusCode,
-		}
+		return parseApiError(body, resp.StatusCode)
 	}
 
 	if err := json.Unmarshal(body, result); err != nil {
@@ -228,16 +229,7 @@ func (c *Client) handleDeleteRequest(endpoint string, queryParams map[string]str
 	}
 
 	if resp.StatusCode >= 400 {
-		var apiErr ApiError
-		if err := json.Unmarshal(body, &apiErr); err == nil && apiErr.Message != "" {
-			apiErr.Status = &resp.StatusCode
-			return &apiErr
-		}
-		return &ApiError{
-			Message: fmt.Sprintf("API error: %s", string(body)),
-			Code:    -1,
-			Status:  &resp.StatusCode,
-		}
+		return parseApiError(body, resp.StatusCode)
 	}
 
 	if err := json.Unmarshal(body, result); err != nil {
@@ -295,16 +287,7 @@ func (c *Client) handlePatchRequest(endpoint string, params interface{}, result 
 	}
 
 	if resp.StatusCode >= 400 {
-		var apiErr ApiError
-		if err := json.Unmarshal(body, &apiErr); err == nil && apiErr.Message != "" {
-			apiErr.Status = &resp.StatusCode
-			return &apiErr
-		}
-		return &ApiError{
-			Message: fmt.Sprintf("API error: %s", string(body)),
-			Code:    -1,
-			Status:  &resp.StatusCode,
-		}
+		return parseApiError(body, resp.StatusCode)
 	}
 
 	if err := json.Unmarshal(body, result); err != nil {
@@ -330,9 +313,10 @@ func (c *Client) CreateKey(params CreateKeyParams, opts ...*RequestOptions) (*Cr
 
 // ActivateKey activates a license key for a specific device.
 //
-// IMPORTANT: If hostId is omitted, Keymint generates a random, unique Device ID.
-// Every subsequent activation attempt without a hostId will be treated as a NEW machine.
-// Applications using anonymous activations MUST cache the validation results locally.
+// If HostID is omitted, the activation uses the shared "N/A" hostless slot —
+// all hostless activations share one reusable device slot per license.
+// Pass the returned "N/A" host ID back unchanged for re-activation and
+// deactivation.
 // params: Parameters for activating the key.
 // opts: Optional request configurations (e.g. idempotency keys).
 // Returns the activation status or an error.
@@ -384,15 +368,53 @@ func (c *Client) FloatingCheckin(params FloatingCheckinParams, opts ...*RequestO
 
 // GetKey retrieves detailed information about a specific license key.
 // params: Parameters for fetching the key details.
+// The license key travels in the x-license-key header (never the query
+// string) so it stays out of logs, history, and referrers.
 // Returns the license key details or an error.
 func (c *Client) GetKey(params GetKeyParams) (*GetKeyResponse, error) {
 	var result GetKeyResponse
-	queryParams := map[string]string{
-		"productId":  params.ProductID,
-		"licenseKey": params.LicenseKey,
+	req, err := http.NewRequest("GET", c.baseURL+"/key?productId="+url.QueryEscape(params.ProductID), nil)
+	if err != nil {
+		return nil, &ApiError{
+			Message: fmt.Sprintf("failed to create request: %v", err),
+			Code:    -1,
+		}
 	}
-	err := c.handleGetRequest("/key", queryParams, &result)
-	return &result, err
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	req.Header.Set("x-license-key", params.LicenseKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, &ApiError{
+			Message: fmt.Sprintf("request failed: %v", err),
+			Code:    -1,
+		}
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, &ApiError{
+			Message: fmt.Sprintf("failed to read response: %v", err),
+			Code:    -1,
+			Status:  &resp.StatusCode,
+		}
+	}
+
+	if resp.StatusCode >= 400 {
+		return nil, parseApiError(body, resp.StatusCode)
+	}
+
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, &ApiError{
+			Message: fmt.Sprintf("failed to unmarshal response: %v", err),
+			Code:    -1,
+			Status:  &resp.StatusCode,
+		}
+	}
+
+	return &result, nil
 }
 
 // BlockKey blocks a specific license key.
