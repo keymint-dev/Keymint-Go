@@ -36,6 +36,29 @@ jobs:
       - name: Verify Build
         run: go build ./...
 
+      - name: Compile documented import path
+        # Guards the public import path used in the README and docs.
+        run: |
+          mkdir -p /tmp/consumer && cd /tmp/consumer
+          cat > main.go <<'GO'
+          package main
+
+          import (
+          	"github.com/keymint-dev/keymint-go"
+          	legacy "github.com/keymint-dev/keymint-go/src"
+          )
+
+          func main() {
+          	c, _ := keymint.New("key", "")
+          	_, _ = c.ActivateKey(keymint.ActivateKeyParams{HostID: keymint.String("host")})
+          	_, _ = legacy.New("key", "")
+          }
+          GO
+          go mod init consumer
+          go mod edit -require=github.com/keymint-dev/keymint-go@v0.0.0 -replace="github.com/keymint-dev/keymint-go=$GITHUB_WORKSPACE"
+          go mod tidy
+          go build ./...
+
       - name: Run contract tests
         run: go test ./... -run 'TestSignKey|TestGetKey|TestActivateKey|TestCreateKey|TestFloating|TestApiErrors' -v
 
@@ -61,4 +84,4 @@ jobs:
           KEYMINT_TEST_READONLY_API_KEY: ${{ secrets.KEYMINT_TEST_READONLY_API_KEY }}
           KEYMINT_TEST_CLIENT_API_KEY: ${{ secrets.KEYMINT_TEST_CLIENT_API_KEY }}
           KEYMINT_TEST_PRODUCT_ID: ${{ vars.KEYMINT_TEST_PRODUCT_ID }}
-        run: go test ./src/ -run TestLiveLicenseWorkflowsEndToEnd -v
+        run: go test . -run TestLiveLicenseWorkflowsEndToEnd -v
