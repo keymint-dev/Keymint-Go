@@ -15,6 +15,15 @@ Add the SDK to your project:
 go get github.com/keymint-dev/keymint-go
 ```
 
+### Upgrading from v1.5.0 or earlier
+
+Import the module root, `github.com/keymint-dev/keymint-go`. The old
+`github.com/keymint-dev/keymint-go/src` path still compiles but is deprecated
+and will be removed in a future major version.
+
+Optional fields take pointers; use the helpers `keymint.String`, `keymint.Int`
+and `keymint.Bool`, for example `HostID: keymint.String(hostId)`.
+
 ## Usage
 
 ```go
