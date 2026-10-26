@@ -64,6 +64,39 @@ func main() {
 }
 ```
 
+## Showing The Expiry Date
+
+`ActivateKey` and `FloatingCheckout` return `ExpirationDate`: when the license
+expires, as an ISO 8601 string, or `nil` if it never expires. On
+`FloatingCheckoutResponse` this is the license expiry; `ExpiresAt` is the
+floating seat lease.
+
+```go
+res, err := client.ActivateKey(keymint.ActivateKeyParams{
+    ProductID:  productId,
+    LicenseKey: licenseKey,
+    HostID:     keymint.String(hostId),
+})
+if err != nil {
+    // handle error
+}
+
+if res.ExpirationDate == nil {
+    fmt.Println("License never expires")
+} else if exp, err := time.Parse(time.RFC3339, *res.ExpirationDate); err == nil {
+    daysLeft := int(math.Ceil(time.Until(exp).Hours() / 24))
+    if daysLeft < 0 {
+        daysLeft = 0
+    }
+    fmt.Printf("Expires %s (%d days left)\n", exp.Format("2006-01-02"), daysLeft)
+}
+```
+
+Store the last `ExpirationDate` your app received. An expired license fails
+activation with the same generic error as an invalid key, so the stored date
+lets your app tell the user the license expired on that date rather than
+calling the key invalid.
+
 ## Machine Identity
 Keymint provides utilities to uniquely identify machines for node-locking:
 

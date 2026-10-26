@@ -140,6 +140,11 @@ type ActivateKeyResponse struct {
 	Version map[string]interface{} `json:"version,omitempty"`
 	// AllowedHosts is an optional list of authorized machine IDs.
 	AllowedHosts []string `json:"allowedHosts,omitempty"`
+	// ExpirationDate is when the license expires, as an ISO 8601 string
+	// (e.g. "2027-03-01T00:00:00.000Z"). It is nil when the license never
+	// expires. An expired license fails activation with the generic
+	// invalid-key error, so store the last value received.
+	ExpirationDate *string `json:"expirationDate,omitempty"`
 }
 
 // DeactivateKeyParams represents parameters for the deactivateKey API endpoint.
@@ -515,6 +520,9 @@ type FloatingCheckoutResponse struct {
 	LicenseeName *string `json:"licenseeName,omitempty"`
 	// LicenseeEmail is the optional email of the customer licensee.
 	LicenseeEmail *string `json:"licenseeEmail,omitempty"`
+	// ExpirationDate is when the license expires, as an ISO 8601 string, or
+	// nil when it never expires. It is not the seat lease; see ExpiresAt.
+	ExpirationDate *string `json:"expirationDate,omitempty"`
 }
 
 // FloatingHeartbeatParams represents parameters for the floating license heartbeat API endpoint.
