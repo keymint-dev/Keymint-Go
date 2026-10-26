@@ -176,6 +176,19 @@ func TestLiveLicenseWorkflowsEndToEnd(t *testing.T) {
 	if !ok || !strings.Contains(fileStr, "signedKey") || !strings.Contains(fileStr, "keyId") {
 		t.Fatalf("unexpected signed file: %#v", signed.File)
 	}
+	if publicKey := os.Getenv("KEYMINT_TEST_PUBLIC_KEY"); publicKey != "" {
+		verified, err := VerifyOfflineLicense(fileStr, OfflineVerifyOptions{
+			PublicKeys: []string{publicKey}, ProductID: productID, MachineCode: nodeHost,
+		})
+		if err != nil {
+			t.Fatalf("verify signed file: %v", err)
+		}
+		if verified.LicenseKey != nodeKey || verified.ProductID != productID || verified.MachineCode != nodeHost {
+			t.Fatal("verified offline license does not match the signed key, product or machine")
+		}
+	} else {
+		t.Log("KEYMINT_TEST_PUBLIC_KEY not set; skipping offline verification of the signed file")
+	}
 
 	email := "ci-go-" + runID + "@example.com"
 	createdCustomer := live(t, "create customer", func() (*CreateCustomerResponse, error) {

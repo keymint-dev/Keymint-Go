@@ -56,6 +56,22 @@ type (
 	SignKeyParams                = km.SignKeyParams
 	SignKeyResponse              = km.SignKeyResponse
 	RequestOptions               = km.RequestOptions
+	OfflineVerifyOptions         = km.OfflineVerifyOptions
+	OfflineLicense               = km.OfflineLicense
+	OfflineLicenseError          = km.OfflineLicenseError
+	OfflineLicenseErrorCode      = km.OfflineLicenseErrorCode
+)
+
+// Offline license reason codes.
+const (
+	OfflineMalformed            = km.OfflineMalformed
+	OfflineUnsupportedAlgorithm = km.OfflineUnsupportedAlgorithm
+	OfflineUnknownKey           = km.OfflineUnknownKey
+	OfflineBadSignature         = km.OfflineBadSignature
+	OfflineWrongType            = km.OfflineWrongType
+	OfflineWrongProduct         = km.OfflineWrongProduct
+	OfflineWrongMachine         = km.OfflineWrongMachine
+	OfflineExpired              = km.OfflineExpired
 )
 
 // Functions.
@@ -68,4 +84,7 @@ var (
 	String                    = km.String
 	Int                       = km.Int
 	Bool                      = km.Bool
+	VerifyOfflineLicense      = km.VerifyOfflineLicense
+	OfflineKeyID              = km.OfflineKeyID
+	ErrInvalidOfflineOptions  = km.ErrInvalidOfflineOptions
 )

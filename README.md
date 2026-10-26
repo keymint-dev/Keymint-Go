@@ -97,6 +97,79 @@ activation with the same generic error as an invalid key, so the stored date
 lets your app tell the user the license expired on that date rather than
 calling the key invalid.
 
+## Offline Licenses
+
+An offline license is a signed `.lic` file your app can check with no network
+call. `VerifyOfflineLicense` verifies it locally with the standard library
+(Ed25519); no extra dependencies.
+
+1. **Get the `.lic` file.** Sign it from the dashboard's Offline License
+   modal, or call `SignKey` while the machine is online:
+
+   ```go
+   signed, err := client.SignKey(keymint.SignKeyParams{
+       ProductID:  productId,
+       LicenseKey: licenseKey,
+       HostID:     hostId, // the machine code the license is bound to
+   })
+   // signed.File holds the .lic contents; save it next to your app.
+   ```
+
+2. **Bundle your public key.** Copy the PEM from **Developer → Public Keys**
+   in the dashboard and ship it with your app (it is public; never ship the
+   API key).
+
+3. **Verify on start-up**, passing the product ID and this machine's code:
+
+   ```go
+   //go:embed keymint-public-key.pem
+   var publicKeyPEM string
+
+   lic, err := keymint.VerifyOfflineLicense(licFileContents, keymint.OfflineVerifyOptions{
+       PublicKeys:  []string{publicKeyPEM},
+       ProductID:   productId,
+       MachineCode: hostId,
+       Now:         trustedNow(), // optional, see below
+   })
+   var licErr *keymint.OfflineLicenseError
+   switch {
+   case err == nil:
+       fmt.Printf("Licensed %s until %s\n", lic.ProductID, lic.ExpiresAt.Format("2006-01-02"))
+   case errors.As(err, &licErr):
+       switch licErr.Code {
+       case keymint.OfflineExpired:
+           // Ask the user to go online and re-sign (SignKey) to renew.
+       case keymint.OfflineWrongMachine:
+           // The file was signed for another machine.
+       case keymint.OfflineWrongProduct:
+           // The file is for a different product.
+       default:
+           // OfflineMalformed, OfflineUnsupportedAlgorithm, OfflineUnknownKey,
+           // OfflineBadSignature, OfflineWrongType: not a valid license file.
+       }
+   case errors.Is(err, keymint.ErrInvalidOfflineOptions):
+       // Programming error: missing/invalid public key, empty ProductID or
+       // MachineCode, or ClockSkew outside 0..1h.
+       panic(err)
+   }
+   ```
+
+`ProductID` is required because one signing key covers every product in your
+organization: without the check, a license for one product would unlock
+another. Comparisons are exact (no trimming or case folding).
+
+`license` may be the `.lic` file contents or the bare signed token. Pass more
+than one key in `PublicKeys` to accept licenses across a key rotation.
+`ClockSkew` (default 60s, max 1h; pass a pointer to 0 for none) is the leeway
+allowed after expiry.
+
+**Clock rollback.** The SDK can't tell if the user set the system clock back.
+Store the latest time your app has trusted (for example after each successful
+check or online call) and pass the later of `time.Now()` and that stored time as `Now`.
+
+An offline license stays valid until it expires; blocking the key online does
+not revoke a file already issued.
+
 ## Machine Identity
 Keymint provides utilities to uniquely identify machines for node-locking:
 
@@ -138,6 +211,13 @@ Keymint provides utilities to uniquely identify machines for node-locking:
 | Method                  | Description                                      |
 |-------------------------|--------------------------------------------------|
 | `VerifyWebhookSignature`| Verifies the signature of a webhook request payload. |
+
+### Offline Verification
+
+| Function                | Description                                      |
+|-------------------------|--------------------------------------------------|
+| `VerifyOfflineLicense`  | Verifies a signed `.lic` file locally, with no network call. |
+| `OfflineKeyID`          | Returns the key ID Keymint computes for a public key PEM. |
 
 ## Idempotency
 

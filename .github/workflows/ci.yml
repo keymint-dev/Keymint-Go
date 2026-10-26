@@ -52,6 +52,8 @@ jobs:
           	c, _ := keymint.New("key", "")
           	_, _ = c.ActivateKey(keymint.ActivateKeyParams{HostID: keymint.String("host")})
           	_, _ = legacy.New("key", "")
+          	_, _ = keymint.VerifyOfflineLicense("", keymint.OfflineVerifyOptions{})
+          	_, _ = legacy.VerifyOfflineLicense("", legacy.OfflineVerifyOptions{})
           }
           GO
           go mod init consumer
@@ -60,7 +62,7 @@ jobs:
           go build ./...
 
       - name: Run contract tests
-        run: go test ./... -run 'TestSignKey|TestGetKey|TestActivateKey|TestCreateKey|TestFloating|TestApiErrors' -v
+        run: go test ./... -run 'TestSignKey|TestGetKey|TestActivateKey|TestCreateKey|TestFloating|TestApiErrors|TestVerifyOfflineLicense' -v
 
   live:
     name: Live API Validation
@@ -84,4 +86,5 @@ jobs:
           KEYMINT_TEST_READONLY_API_KEY: ${{ secrets.KEYMINT_TEST_READONLY_API_KEY }}
           KEYMINT_TEST_CLIENT_API_KEY: ${{ secrets.KEYMINT_TEST_CLIENT_API_KEY }}
           KEYMINT_TEST_PRODUCT_ID: ${{ vars.KEYMINT_TEST_PRODUCT_ID }}
+          KEYMINT_TEST_PUBLIC_KEY: ${{ vars.KEYMINT_TEST_PUBLIC_KEY }}
         run: go test . -run TestLiveLicenseWorkflowsEndToEnd -v
