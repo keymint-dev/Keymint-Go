@@ -231,3 +231,67 @@ func TestFloatingCheckoutDeserializesExpirationDate(t *testing.T) {
 		})
 	}
 }
+
+func TestDeleteKeySendsLicenseInBodyInsteadOfURL(t *testing.T) {
+	var gotMethod, gotPath, gotRawQuery, gotURI, gotAuth, gotContentType string
+	var body map[string]interface{}
+	c, done := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		gotPath = r.URL.Path
+		gotRawQuery = r.URL.RawQuery
+		gotURI = r.RequestURI
+		gotAuth = r.Header.Get("Authorization")
+		gotContentType = r.Header.Get("Content-Type")
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"message":"Key deleted","code":0}`))
+	})
+	defer done()
+
+	res, err := c.DeleteKey(DeleteKeyParams{ProductID: "p", LicenseKey: "AAAA-BBBB"})
+	if err != nil {
+		t.Fatalf("DeleteKey failed: %v", err)
+	}
+	if gotMethod != http.MethodDelete {
+		t.Fatalf("expected DELETE, got %s", gotMethod)
+	}
+	if gotPath != "/key" {
+		t.Fatalf("unexpected path %s", gotPath)
+	}
+	if gotRawQuery != "" || strings.Contains(gotURI, "AAAA-BBBB") {
+		t.Fatalf("license key leaked into URL: %q", gotURI)
+	}
+	if gotAuth != "Bearer test-key" {
+		t.Fatalf("unexpected Authorization header %q", gotAuth)
+	}
+	if gotContentType != "application/json" {
+		t.Fatalf("unexpected Content-Type %q", gotContentType)
+	}
+	if body["productId"] != "p" || body["licenseKey"] != "AAAA-BBBB" {
+		t.Fatalf("unexpected body: %#v", body)
+	}
+	if res.Message != "Key deleted" || res.Code != 0 {
+		t.Fatalf("unexpected response: %#v", res)
+	}
+}
+
+func TestDeleteKeyReturnsNotFoundError(t *testing.T) {
+	c, done := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = w.Write([]byte(`{"message":"Invalid license key","code":1}`))
+	})
+	defer done()
+
+	_, err := c.DeleteKey(DeleteKeyParams{ProductID: "p", LicenseKey: "missing"})
+	apiErr, ok := err.(*ApiError)
+	if !ok {
+		t.Fatalf("expected *ApiError, got %T", err)
+	}
+	if apiErr.Message != "Invalid license key" || apiErr.Code != 1 {
+		t.Fatalf("unexpected error: %#v", apiErr)
+	}
+	if apiErr.Status == nil || *apiErr.Status != http.StatusNotFound {
+		t.Fatalf("status not captured: %#v", apiErr.Status)
+	}
+}

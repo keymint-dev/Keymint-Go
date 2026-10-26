@@ -58,8 +58,8 @@ func parseApiError(body []byte, statusCode int) *ApiError {
 	}
 }
 
-// handleRequest is a generic method to handle POST/PUT requests.
-// method: HTTP method (POST/PUT).
+// handleRequest is a generic method to handle requests with a JSON body.
+// method: HTTP method (POST/PUT/DELETE).
 // endpoint: API endpoint.
 // params: Request body parameters.
 // result: Pointer to the result struct to unmarshal response into.
@@ -437,6 +437,16 @@ func (c *Client) UnblockKey(params UnblockKeyParams, opts ...*RequestOptions) (*
 	return &result, err
 }
 
+// DeleteKey permanently deletes a license key (use BlockKey to stop it reversibly).
+// params: Parameters for deleting the key.
+// opts: Optional request configurations (e.g. idempotency keys).
+// Returns the delete confirmation or an error.
+func (c *Client) DeleteKey(params DeleteKeyParams, opts ...*RequestOptions) (*DeleteKeyResponse, error) {
+	var result DeleteKeyResponse
+	err := c.handleRequest("DELETE", "/key", params, &result, opts...)
+	return &result, err
+}
+
 // UpdateKey updates an existing license key via PATCH /api/key.
 func (c *Client) UpdateKey(params UpdateKeyParams, opts ...*RequestOptions) (*UpdateKeyResponse, error) {
 	var result UpdateKeyResponse
@@ -502,7 +512,7 @@ func (c *Client) UpdateCustomer(params UpdateCustomerParams, opts ...*RequestOpt
 	return &result, err
 }
 
-// DeleteCustomer deletes a customer and all associated license keys permanently.
+// DeleteCustomer deletes a customer. Their license keys are kept; use DeleteKey to remove them.
 // params: Parameters containing the customer ID.
 // opts: Optional request configurations (e.g. idempotency keys).
 // Returns the deletion confirmation or an error.

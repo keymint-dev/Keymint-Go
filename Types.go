@@ -272,6 +272,22 @@ type UnblockKeyResponse struct {
 	Code int `json:"code"`
 }
 
+// DeleteKeyParams represents parameters for the deleteKey API endpoint.
+type DeleteKeyParams struct {
+	// ProductID is the unique identifier of the product.
+	ProductID string `json:"productId"`
+	// LicenseKey is the license key to delete permanently.
+	LicenseKey string `json:"licenseKey"`
+}
+
+// DeleteKeyResponse represents response structure for a successful deleteKey API call.
+type DeleteKeyResponse struct {
+	// Message is the confirmation message (e.g., "Key deleted").
+	Message string `json:"message"`
+	// Code is the API response code (e.g., 0 for success).
+	Code int `json:"code"`
+}
+
 // CreateCustomerParams represents parameters for the createCustomer API endpoint.
 type CreateCustomerParams struct {
 	// Name is the required customer name.
