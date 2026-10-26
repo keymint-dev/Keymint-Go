@@ -167,3 +167,67 @@ func TestApiErrorsExposeNestedMessage(t *testing.T) {
 		t.Fatalf("status not captured: %#v", apiErr.Status)
 	}
 }
+
+// expirationCases covers the three shapes the API can send: a date, an
+// explicit null (never expires), and an older server that omits the field.
+var expirationCases = []struct {
+	name string
+	body string
+	want *string
+}{
+	{"date", `"expirationDate":"2027-03-01T00:00:00.000Z",`, String("2027-03-01T00:00:00.000Z")},
+	{"null", `"expirationDate":null,`, nil},
+	{"absent", ``, nil},
+}
+
+func checkExpiration(t *testing.T, got, want *string) {
+	t.Helper()
+	switch {
+	case want == nil && got != nil:
+		t.Fatalf("expected nil ExpirationDate, got %q", *got)
+	case want != nil && got == nil:
+		t.Fatalf("expected ExpirationDate %q, got nil", *want)
+	case want != nil && *got != *want:
+		t.Fatalf("expected ExpirationDate %q, got %q", *want, *got)
+	}
+}
+
+func TestActivateKeyDeserializesExpirationDate(t *testing.T) {
+	for _, tc := range expirationCases {
+		t.Run(tc.name, func(t *testing.T) {
+			c, done := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"code":0,"message":"License valid",` + tc.body + `"metadata":{"hostId":"h1"}}`))
+			})
+			defer done()
+
+			res, err := c.ActivateKey(ActivateKeyParams{ProductID: "p", LicenseKey: "k", HostID: String("h1")})
+			if err != nil {
+				t.Fatalf("ActivateKey failed: %v", err)
+			}
+			checkExpiration(t, res.ExpirationDate, tc.want)
+		})
+	}
+}
+
+func TestFloatingCheckoutDeserializesExpirationDate(t *testing.T) {
+	for _, tc := range expirationCases {
+		t.Run(tc.name, func(t *testing.T) {
+			c, done := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"code":0,"message":"ok","sessionId":"s","sessionSecret":"sec","nextNonce":"n",` +
+					`"expiresAt":"2026-10-26T12:00:00.000Z","heartbeatInterval":60,` + tc.body + `"currentSessions":1,"maxSessions":5}`))
+			})
+			defer done()
+
+			res, err := c.FloatingCheckout(FloatingCheckoutParams{ProductID: "p", LicenseKey: "k", HostID: "h"})
+			if err != nil {
+				t.Fatalf("FloatingCheckout failed: %v", err)
+			}
+			if res.ExpiresAt != "2026-10-26T12:00:00.000Z" {
+				t.Fatalf("seat lease ExpiresAt changed: %q", res.ExpiresAt)
+			}
+			checkExpiration(t, res.ExpirationDate, tc.want)
+		})
+	}
+}
