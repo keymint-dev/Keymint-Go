@@ -512,7 +512,7 @@ func (c *Client) UpdateCustomer(params UpdateCustomerParams, opts ...*RequestOpt
 	return &result, err
 }
 
-// DeleteCustomer deletes a customer and all associated license keys permanently.
+// DeleteCustomer deletes a customer. Their license keys are kept; use DeleteKey to remove them.
 // params: Parameters containing the customer ID.
 // opts: Optional request configurations (e.g. idempotency keys).
 // Returns the deletion confirmation or an error.
