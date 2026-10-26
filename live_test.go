@@ -53,6 +53,23 @@ func live[T any](t *testing.T, what string, fn func() (T, error)) T {
 	return zero
 }
 
+// bestEffort is live() for cleanup: it retries 429s the same way but only logs
+// a final failure (e.g. a 404 because the test already deleted the key).
+func bestEffort[T any](t *testing.T, what string, fn func() (T, error)) {
+	t.Helper()
+	for attempt := 1; attempt <= 4; attempt++ {
+		_, err := fn()
+		if err == nil {
+			return
+		}
+		if !isRateLimited(err) || attempt == 4 {
+			t.Logf("%s (best effort) failed: %v", what, err)
+			return
+		}
+		time.Sleep(10 * time.Second)
+	}
+}
+
 func strptr(s string) *string { return &s }
 
 func TestLiveLicenseWorkflowsEndToEnd(t *testing.T) {
@@ -64,15 +81,20 @@ func TestLiveLicenseWorkflowsEndToEnd(t *testing.T) {
 	nodeHost := "ci-go-node-" + runID
 	var nodeKey, floatingKey, customerID string
 
+	// Best-effort cleanup: delete (not just block) every key this run created so
+	// the shared test workspace does not fill up its plan's license limit.
 	defer func() {
-		if nodeKey != "" {
-			_, _ = admin.BlockKey(BlockKeyParams{ProductID: productID, LicenseKey: nodeKey})
-		}
-		if floatingKey != "" {
-			_, _ = admin.BlockKey(BlockKeyParams{ProductID: productID, LicenseKey: floatingKey})
+		for _, key := range []string{nodeKey, floatingKey} {
+			if key != "" {
+				bestEffort(t, "cleanup delete key", func() (*DeleteKeyResponse, error) {
+					return admin.DeleteKey(DeleteKeyParams{ProductID: productID, LicenseKey: key})
+				})
+			}
 		}
 		if customerID != "" {
-			_, _ = admin.DeleteCustomer(DeleteCustomerParams{CustomerID: customerID})
+			bestEffort(t, "cleanup delete customer", func() (*DeleteCustomerResponse, error) {
+				return admin.DeleteCustomer(DeleteCustomerParams{CustomerID: customerID})
+			})
 		}
 	}()
 
@@ -254,4 +276,29 @@ func TestLiveLicenseWorkflowsEndToEnd(t *testing.T) {
 		t.Fatal("delete reported failure")
 	}
 	customerID = ""
+
+	deletedKey := live(t, "delete node key", func() (*DeleteKeyResponse, error) {
+		return admin.DeleteKey(DeleteKeyParams{ProductID: productID, LicenseKey: nodeKey})
+	})
+	if deletedKey.Code != 0 {
+		t.Fatalf("delete key code %d (%q)", deletedKey.Code, deletedKey.Message)
+	}
+
+	// A deleted key must be gone: the lookup fails with a 404, not a 429.
+	var lookupErr error
+	for attempt := 1; attempt <= 4; attempt++ {
+		_, lookupErr = readOnly.GetKey(GetKeyParams{ProductID: productID, LicenseKey: nodeKey})
+		if !isRateLimited(lookupErr) {
+			break
+		}
+		time.Sleep(10 * time.Second)
+	}
+	if lookupErr == nil {
+		t.Fatal("lookup of a deleted key succeeded")
+	}
+	apiErr, ok := lookupErr.(*ApiError)
+	if !ok || apiErr.Status == nil || *apiErr.Status != 404 {
+		t.Fatalf("expected 404 looking up a deleted key, got %v", lookupErr)
+	}
+	nodeKey = ""
 }

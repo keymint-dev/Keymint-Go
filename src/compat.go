@@ -28,6 +28,8 @@ type (
 	BlockKeyResponse             = km.BlockKeyResponse
 	UnblockKeyParams             = km.UnblockKeyParams
 	UnblockKeyResponse           = km.UnblockKeyResponse
+	DeleteKeyParams              = km.DeleteKeyParams
+	DeleteKeyResponse            = km.DeleteKeyResponse
 	CreateCustomerParams         = km.CreateCustomerParams
 	CreateCustomerResponse       = km.CreateCustomerResponse
 	Customer                     = km.Customer

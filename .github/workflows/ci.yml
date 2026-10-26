@@ -51,7 +51,9 @@ jobs:
           func main() {
           	c, _ := keymint.New("key", "")
           	_, _ = c.ActivateKey(keymint.ActivateKeyParams{HostID: keymint.String("host")})
-          	_, _ = legacy.New("key", "")
+          	_, _ = c.DeleteKey(keymint.DeleteKeyParams{})
+          	lc, _ := legacy.New("key", "")
+          	_, _ = lc.DeleteKey(legacy.DeleteKeyParams{})
           	_, _ = keymint.VerifyOfflineLicense("", keymint.OfflineVerifyOptions{})
           	_, _ = legacy.VerifyOfflineLicense("", legacy.OfflineVerifyOptions{})
           }
@@ -62,7 +64,7 @@ jobs:
           go build ./...
 
       - name: Run contract tests
-        run: go test ./... -run 'TestSignKey|TestGetKey|TestActivateKey|TestCreateKey|TestFloating|TestApiErrors|TestVerifyOfflineLicense' -v
+        run: go test ./... -run 'TestSignKey|TestGetKey|TestActivateKey|TestCreateKey|TestDeleteKey|TestFloating|TestApiErrors|TestVerifyOfflineLicense' -v
 
   live:
     name: Live API Validation
