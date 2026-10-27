@@ -232,6 +232,8 @@ key, err := client.CreateKey(keymint.CreateKeyParams{
 })
 ```
 
+Use a fresh random UUID for each operation and reuse it only to retry that same operation. Never derive it from the license key or host ID: a replay returns the original response, including floating-session secrets.
+
 ## License
 MIT
 
