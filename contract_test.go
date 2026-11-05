@@ -168,6 +168,64 @@ func TestApiErrorsExposeNestedMessage(t *testing.T) {
 	}
 }
 
+func TestApiErrorUnmarshalsErrorFieldShapes(t *testing.T) {
+	cases := []struct {
+		name       string
+		body       string
+		wantText   string
+		wantDetail string
+	}{
+		{"string", `{"message":"Method not allowed","code":1,"error":"Method not allowed"}`, "Method not allowed", ""},
+		{"object", `{"message":"Too many requests","code":1,"error":{"code":"RATE_LIMIT_EXCEEDED","message":"Too many requests"}}`, "", "RATE_LIMIT_EXCEEDED"},
+		{"null", `{"message":"Invalid license key","code":1,"error":null}`, "", ""},
+		{"absent", `{"message":"Invalid license key","code":1}`, "", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var apiErr ApiError
+			if err := json.Unmarshal([]byte(tc.body), &apiErr); err != nil {
+				t.Fatalf("unmarshal failed: %v", err)
+			}
+			if apiErr.Message == "" || apiErr.Code != 1 {
+				t.Fatalf("top-level fields not decoded: %#v", apiErr)
+			}
+			if apiErr.ErrorText != tc.wantText {
+				t.Fatalf("expected ErrorText %q, got %q", tc.wantText, apiErr.ErrorText)
+			}
+			switch {
+			case tc.wantDetail == "" && apiErr.ErrorDetail != nil:
+				t.Fatalf("expected nil ErrorDetail, got %#v", apiErr.ErrorDetail)
+			case tc.wantDetail != "" && (apiErr.ErrorDetail == nil || apiErr.ErrorDetail.Code == nil || *apiErr.ErrorDetail.Code != tc.wantDetail):
+				t.Fatalf("expected ErrorDetail code %q, got %#v", tc.wantDetail, apiErr.ErrorDetail)
+			}
+		})
+	}
+}
+
+func TestApiErrorsAcceptStringErrorField(t *testing.T) {
+	c, done := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte(`{"error":"This API key is not allowed from this IP address","message":"This API key is not allowed from this IP address","code":1}`))
+	})
+	defer done()
+
+	_, err := c.ActivateKey(ActivateKeyParams{ProductID: "p", LicenseKey: "k"})
+	apiErr, ok := err.(*ApiError)
+	if !ok {
+		t.Fatalf("expected *ApiError, got %T", err)
+	}
+	if apiErr.Code != 1 || apiErr.Message != "This API key is not allowed from this IP address" {
+		t.Fatalf("string error body not decoded: %#v", apiErr)
+	}
+	if apiErr.ErrorText != apiErr.Message || apiErr.ErrorDetail != nil {
+		t.Fatalf("unexpected error field: %#v", apiErr)
+	}
+	if apiErr.Status == nil || *apiErr.Status != http.StatusForbidden {
+		t.Fatalf("status not captured: %#v", apiErr.Status)
+	}
+}
+
 // expirationCases covers the three shapes the API can send: a date, an
 // explicit null (never expires), and an older server that omits the field.
 var expirationCases = []struct {

@@ -1,6 +1,9 @@
 package keymint
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 // NewCustomer represents the structure for creating a new customer when creating a license key.
 type NewCustomer struct {
@@ -88,8 +91,37 @@ type ApiError struct {
 	Code int `json:"code"`
 	// Status is the optional HTTP status code.
 	Status *int `json:"status,omitempty"`
-	// ErrorDetail holds the nested error envelope when present.
+	// ErrorDetail holds the nested error envelope when `error` is an object.
 	ErrorDetail *ApiErrorDetails `json:"error,omitempty"`
+	// ErrorText holds `error` when the API sends it as a plain string
+	// (e.g. "Method not allowed") instead of an object.
+	ErrorText string `json:"-"`
+}
+
+// UnmarshalJSON accepts the `error` field as either a string or an object,
+// since both shapes appear in Keymint API error responses.
+func (e *ApiError) UnmarshalJSON(data []byte) error {
+	type apiErrorFields ApiError
+	var raw struct {
+		*apiErrorFields
+		Error json.RawMessage `json:"error,omitempty"`
+	}
+	raw.apiErrorFields = (*apiErrorFields)(e)
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if len(raw.Error) == 0 || string(raw.Error) == "null" {
+		return nil
+	}
+	if raw.Error[0] == '"' {
+		return json.Unmarshal(raw.Error, &e.ErrorText)
+	}
+	var detail ApiErrorDetails
+	if err := json.Unmarshal(raw.Error, &detail); err != nil {
+		return err
+	}
+	e.ErrorDetail = &detail
+	return nil
 }
 
 // Error implements the error interface for ApiError.
