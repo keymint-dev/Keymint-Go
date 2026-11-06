@@ -220,6 +220,36 @@ Keymint provides utilities to uniquely identify machines for node-locking:
 | `VerifyOfflineLicense`  | Verifies a signed `.lic` file locally, with no network call. |
 | `OfflineKeyID`          | Returns the key ID Keymint computes for a public key PEM. |
 
+## Error Handling
+
+API errors are returned as `*keymint.ApiError`. Branch on `ErrorCode`, a stable string such as `license_invalid_or_forbidden` or `rate_limited`, not on `Message`, which is written for people and may be reworded. See the [error code reference](https://keymint.dev/docs/api-reference/error-codes) for the full list.
+
+```go
+res, err := client.ActivateKey(keymint.ActivateKeyParams{
+    ProductID:  productId,
+    LicenseKey: licenseKey,
+    HostID:     keymint.String(hostId),
+})
+var apiErr *keymint.ApiError
+switch {
+case err == nil:
+    fmt.Println("Activated:", res.Message)
+case errors.As(err, &apiErr):
+    switch apiErr.ErrorCode {
+    case "license_invalid_or_forbidden":
+        // Rejected: ask the user to re-enter the key or contact support.
+    case "activation_limit_reached":
+        // Ask the user to deactivate another device.
+    case "rate_limited", "service_unavailable":
+        // No answer yet: keep the last known state and retry later.
+    default:
+        fmt.Printf("Keymint error %s (HTTP %d): %s\n", apiErr.ErrorCode, *apiErr.Status, apiErr.Message)
+    }
+}
+```
+
+`ErrorCode` is empty when the response has none, for example a non-JSON body from a proxy, where `Code` is `-1`. `Code` (numeric) and `ErrorDetail` / `ErrorText` (the legacy `error` field) are still set as before.
+
 ## Idempotency
 
 All mutating SDK methods support idempotency keys to safely retry requests in case of network drops. Pass a pointer to a `keymint.RequestOptions` struct as the optional variadic argument:
