@@ -89,6 +89,9 @@ type ApiError struct {
 	Message string `json:"message"`
 	// Code is the API specific error code.
 	Code int `json:"code"`
+	// ErrorCode is the stable string error code (e.g. "license_not_found").
+	// Branch on this rather than on Message. Empty when the response has none.
+	ErrorCode string `json:"errorCode,omitempty"`
 	// Status is the optional HTTP status code.
 	Status *int `json:"status,omitempty"`
 	// ErrorDetail holds the nested error envelope when `error` is an object.

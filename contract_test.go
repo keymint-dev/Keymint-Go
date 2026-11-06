@@ -353,3 +353,40 @@ func TestDeleteKeyReturnsNotFoundError(t *testing.T) {
 		t.Fatalf("status not captured: %#v", apiErr.Status)
 	}
 }
+
+func TestApiErrorsExposeErrorCode(t *testing.T) {
+	cases := []struct {
+		name          string
+		status        int
+		body          string
+		wantCode      int
+		wantErrorCode string
+		wantMessage   string
+	}{
+		{"with errorCode", http.StatusUnauthorized, `{"message":"Invalid license key or insufficient permissions","code":1,"errorCode":"license_invalid_or_forbidden"}`, 1, "license_invalid_or_forbidden", "Invalid license key or insufficient permissions"},
+		{"with errorCode and error object", http.StatusBadRequest, `{"success":false,"message":"Field 'licenseKey' is required.","code":1,"errorCode":"invalid_request","error":{"code":"VALIDATION_ERROR","message":"Field 'licenseKey' is required."}}`, 1, "invalid_request", "Field 'licenseKey' is required."},
+		{"without errorCode", http.StatusNotFound, `{"message":"Invalid license key","code":1}`, 1, "", "Invalid license key"},
+		{"non-JSON body", http.StatusBadGateway, `<html>Bad Gateway</html>`, -1, "", "API error: <html>Bad Gateway</html>"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			c, done := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(tc.status)
+				_, _ = w.Write([]byte(tc.body))
+			})
+			defer done()
+
+			_, err := c.ActivateKey(ActivateKeyParams{ProductID: "p", LicenseKey: "k"})
+			apiErr, ok := err.(*ApiError)
+			if !ok {
+				t.Fatalf("expected *ApiError, got %T", err)
+			}
+			if apiErr.ErrorCode != tc.wantErrorCode || apiErr.Code != tc.wantCode || apiErr.Message != tc.wantMessage {
+				t.Fatalf("unexpected error: %#v", apiErr)
+			}
+			if apiErr.Status == nil || *apiErr.Status != tc.status {
+				t.Fatalf("status not captured: %#v", apiErr.Status)
+			}
+		})
+	}
+}
