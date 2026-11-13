@@ -26,43 +26,140 @@ and `keymint.Bool`, for example `HostID: keymint.String(hostId)`.
 
 ## Usage
 
+Keymint API keys have a scope. Use two different keys, in two different places:
+
+- A **`client`** key, bound to one product, goes in the app you ship. It can
+  only activate and deactivate devices and run floating-license sessions.
+- An **`admin`** key stays on your server. It creates, updates, signs, blocks
+  and deletes keys and manages customers. **Never ship an admin key in an
+  app.**
+
+Anything compiled into an app can be extracted from it, so treat any key you
+ship as public.
+
+### In your app (client key)
+
+Get this machine's installation ID, then activate. Calling `ActivateKey` again
+with the same `HostID` reuses that device's slot, so you can call it at
+start-up to check the license is still valid.
+
 ```go
 package main
 
 import (
-    "os"
     "fmt"
+
     "github.com/keymint-dev/keymint-go"
 )
 
-func main() {
-    apiKey := os.Getenv("KEYMINT_API_KEY")
-    productId := os.Getenv("KEYMINT_PRODUCT_ID")
+const (
+    // A client-scoped API key bound to this product. Never put an admin key here.
+    clientAPIKey = "YOUR_PRODUCT_BOUND_CLIENT_KEY"
+    productId    = "YOUR_PRODUCT_ID"
+)
 
-    client, err := keymint.New(apiKey, "")
+func main() {
+    client, err := keymint.New(clientAPIKey, "")
     if err != nil {
         panic(err)
     }
 
-    // 1. Get a stable, unique ID for this machine
+    // 1. Get this installation's ID (see Machine Identity below)
     hostId, err := keymint.GetOrCreateInstallationID("")
     if err != nil {
         panic(err)
     }
 
-    // 2. Create a key authorized only for this machine
-    key, err := client.CreateKey(keymint.CreateKeyParams{
-        ProductID:    productId,
-        AllowedHosts: []string{hostId},
+    licenseKey := "the key your user entered"
+
+    // 2. Activate (or re-check) the license on this machine
+    res, err := client.ActivateKey(keymint.ActivateKeyParams{
+        ProductID:  productId,
+        LicenseKey: licenseKey,
+        HostID:     keymint.String(hostId),
+    })
+    if err != nil {
+        fmt.Printf("Not activated: %v\n", err)
+        return
+    }
+    fmt.Println("Activated:", res.Message)
+
+    // 3. Later, free this machine's slot (for example when the user moves to
+    //    another computer). Client keys must pass HostID.
+    if _, err := client.DeactivateKey(keymint.DeactivateKeyParams{
+        ProductID:  productId,
+        LicenseKey: licenseKey,
+        HostID:     keymint.String(hostId),
+    }); err != nil {
+        fmt.Printf("Deactivation failed: %v\n", err)
+    }
+}
+```
+
+`FloatingCheckout`, `FloatingHeartbeat` and `FloatingCheckin` also work with a
+client key.
+
+### On your server (admin key)
+
+Creating, updating, signing, blocking and deleting keys, and managing
+customers, need an admin key. Run this code on infrastructure you control and
+load the key from your server's environment or secret store.
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+
+    "github.com/keymint-dev/keymint-go"
+)
+
+func main() {
+    // Admin key: server only. Never ship this key in an app.
+    client, err := keymint.New(os.Getenv("KEYMINT_ADMIN_API_KEY"), "")
+    if err != nil {
+        panic(err)
+    }
+    productId := os.Getenv("KEYMINT_PRODUCT_ID")
+
+    // Create a customer
+    customer, err := client.CreateCustomer(keymint.CreateCustomerParams{
+        Name:  "Ada Lovelace",
+        Email: "ada@example.com",
     })
     if err != nil {
         fmt.Printf("Error: %v\n", err)
         return
     }
-    
+    fmt.Println("Created customer:", customer.Message)
+
+    // Create a key. AllowedHosts is optional: to lock the key to one
+    // machine, pass the host ID your app reported to your server.
+    key, err := client.CreateKey(keymint.CreateKeyParams{
+        ProductID: productId,
+        // AllowedHosts: []string{hostIdFromYourApp},
+    })
+    if err != nil {
+        fmt.Printf("Error: %v\n", err)
+        return
+    }
     fmt.Printf("Created Key: %s\n", key.Key)
+
+    // Block a key, and unblock it again
+    if _, err := client.BlockKey(keymint.BlockKeyParams{ProductID: productId, LicenseKey: key.Key}); err != nil {
+        fmt.Printf("Error: %v\n", err)
+    }
+    if _, err := client.UnblockKey(keymint.UnblockKeyParams{ProductID: productId, LicenseKey: key.Key}); err != nil {
+        fmt.Printf("Error: %v\n", err)
+    }
 }
 ```
+
+Customer management (`CreateCustomer`, `UpdateCustomer`, `ToggleCustomerStatus`,
+`DeleteCustomer`) also needs an admin key. The read calls (`GetKey`,
+`GetAllCustomers`, `GetCustomerById`, `GetCustomerWithKeys`) need at least a
+`read-only` key, which a `client` key is not, so keep those on your server too.
 
 ## Showing The Expiry Date
 
@@ -104,15 +201,18 @@ call. `VerifyOfflineLicense` verifies it locally with the standard library
 (Ed25519); no extra dependencies.
 
 1. **Get the `.lic` file.** Sign it from the dashboard's Offline License
-   modal, or call `SignKey` while the machine is online:
+   modal, or call `SignKey` **on your server**: it needs an admin key. While
+   the machine is online, your app sends its host ID to your server, which
+   signs the license and returns the file:
 
    ```go
-   signed, err := client.SignKey(keymint.SignKeyParams{
+   // On your server, with an admin-key client:
+   signed, err := adminClient.SignKey(keymint.SignKeyParams{
        ProductID:  productId,
        LicenseKey: licenseKey,
-       HostID:     hostId, // the machine code the license is bound to
+       HostID:     hostIdFromYourApp, // the machine code the license is bound to
    })
-   // signed.File holds the .lic contents; save it next to your app.
+   // signed.File holds the .lic contents; send it to the app to save.
    ```
 
 2. **Bundle your public key.** Copy the PEM from **Developer → Public Keys**
@@ -171,10 +271,24 @@ An offline license stays valid until it expires; blocking the key online does
 not revoke a file already issued.
 
 ## Machine Identity
-Keymint provides utilities to uniquely identify machines for node-locking:
+Keymint provides utilities to identify an installation for node-locking:
 
-- `keymint.GetOrCreateInstallationID(storagePath)`: **Recommended.** Generates a stable UUID anchored to hardware and persists it to `~/.keymint/installation-id`.
-- `keymint.GetMachineID()`: Generates a SHA-256 fingerprint based on BIOS UUID, OS machine ID, and MAC address.
+- `keymint.GetOrCreateInstallationID(storagePath)`: **Recommended** as the
+  `HostID`. On first call it combines a random UUID, the `GetMachineID()`
+  fingerprint (empty if none could be read) and the current time, and saves
+  that value to `storagePath` (default `~/.keymint/installation-id`, or the
+  OS temp directory if the home directory can't be found). It returns the
+  SHA-256 hash of the saved value, so later calls return the same ID across
+  restarts and app updates, and hardware changes don't affect it. It is
+  random, not derived from the hardware: a new ID is created if the file is
+  deleted, after an OS reinstall, or for another OS user (each has their own
+  home directory). If the file can't be written, no error is returned and
+  each call produces a new ID.
+- `keymint.GetMachineID()`: A best-effort SHA-256 fingerprint of the first
+  usable value among the BIOS/hardware UUID, the OS machine ID (on macOS, the
+  hardware serial number) and the first active network interface's MAC
+  address. It can change after hardware changes or an OS reinstall, can
+  collide on virtual machines, and is empty if nothing could be read.
 
 ## API Methods
 
@@ -202,7 +316,7 @@ Keymint provides utilities to uniquely identify machines for node-locking:
 | `CreateCustomer`        | Creates a new customer.                          |
 | `GetAllCustomers`       | Retrieves all customers.                         |
 | `GetCustomerById`       | Gets a specific customer by ID.                  |
-| `GetCustomerWithKeys`   | Gets a customer along with their license keys.   |
+| `GetCustomerWithKeys`   | Lists the license keys belonging to a customer.  |
 | `UpdateCustomer`        | Updates customer information.                    |
 | `ToggleCustomerStatus`  | Toggles customer active status.                  |
 | `DeleteCustomer`        | Deletes a customer. Their license keys are kept; use `DeleteKey` to remove them. |
@@ -243,7 +357,8 @@ case errors.As(err, &apiErr):
     case "rate_limited", "service_unavailable":
         // No answer yet: keep the last known state and retry later.
     default:
-        fmt.Printf("Keymint error %s (HTTP %d): %s\n", apiErr.ErrorCode, *apiErr.Status, apiErr.Message)
+        // Status is nil when no HTTP response arrived, so don't dereference it blindly.
+        fmt.Printf("Keymint error %s (code %d): %s\n", apiErr.ErrorCode, apiErr.Code, apiErr.Message)
     }
 }
 ```
@@ -255,6 +370,7 @@ case errors.As(err, &apiErr):
 Mutating SDK methods accept an idempotency key so you can safely retry a request after a network drop. Pass a pointer to a `keymint.RequestOptions` struct as the optional variadic argument:
 
 ```go
+// On your server: CreateKey needs an admin key.
 key, err := client.CreateKey(keymint.CreateKeyParams{
     ProductID: productId,
 }, &keymint.RequestOptions{

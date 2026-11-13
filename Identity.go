@@ -160,16 +160,23 @@ func GetMachineID() string {
 	return ""
 }
 
-// GetOrCreateInstallationID returns a guaranteed-unique, guaranteed-stable
-// installation identifier. On first call, it generates a UUIDv4 seeded with
-// whatever hardware info is available and persists it to disk. Every subsequent
-// call returns the same value — even across reboots, app updates, and
-// hardware upgrades.
+// GetOrCreateInstallationID returns a persistent installation identifier as a
+// 64-character SHA-256 hex string.
+//
+// On first call it combines a random UUIDv4, the GetMachineID fingerprint
+// (empty if none could be read) and the current time, and saves that value to
+// storagePath. It returns the SHA-256 hash of the saved value, so later calls
+// return the same ID across restarts and app updates, and hardware changes do
+// not affect it. The ID is random rather than derived from the hardware: a new
+// one is created if the file is deleted, after an OS reinstall, or for another
+// OS user. If the file cannot be written, no error is returned and each call
+// produces a new ID. The returned error is currently always nil.
 //
 // This is the recommended value to pass as HostID when activating a license key.
 //
 // storagePath: Optional custom path for the persistence file.
-// Defaults to ~/.keymint/installation-id.
+// Defaults to ~/.keymint/installation-id (in the OS temp directory if the home
+// directory cannot be found).
 func GetOrCreateInstallationID(storagePath string) (string, error) {
 	if storagePath == "" {
 		home, err := os.UserHomeDir()
